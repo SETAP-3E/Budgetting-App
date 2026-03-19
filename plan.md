@@ -14,3 +14,8 @@ If changes needed on current plan, provide rational in documentation
 **INITIAL PLAN**
 
 Just get something written, some vague start to project
+
+**DEPLOYMENT**
+
+Dockerise?? Deployed branch hosted on server?
+
