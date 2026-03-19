@@ -1,0 +1,1 @@
+-- Example database seed file 

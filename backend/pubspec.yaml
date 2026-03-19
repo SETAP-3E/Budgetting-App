@@ -1,0 +1,21 @@
+name: budgetting_backend
+description: Dart Frog backend API for the Budgetting App
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  dart_frog: ^1.0.0
+  postgres: ^3.0.0
+  dart_jsonwebtoken: ^2.0.0
+  bcrypt: ^1.0.0
+  uuid: ^4.0.0
+
+dev_dependencies:
+  test: ^1.24.0
+  mocktail: ^1.0.0
+  dart_frog_test: ^0.1.0
+  very_good_analysis: ^5.0.0
+  coverage: ^1.7.0

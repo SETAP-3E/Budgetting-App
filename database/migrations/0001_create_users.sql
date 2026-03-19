@@ -1,0 +1,1 @@
+-- Example migration file to create user table

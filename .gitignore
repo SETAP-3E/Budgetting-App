@@ -1,0 +1,34 @@
+# Environment
+.env
+.env.local
+
+# Dart / Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.g.dart
+*.freezed.dart
+pubspec.lock
+
+# Backend build output
+backend/build/
+
+# Frontend build output
+frontend/build/
+
+# Docker
+.docker/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# macOS
+.DS_Store
+
+# Dart pub cache
+.pub-cache/
+.pub/
