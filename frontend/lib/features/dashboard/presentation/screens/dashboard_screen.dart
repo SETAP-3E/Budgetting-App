@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/metric_card.dart';
 
 /// Dashboard screen displaying spending summary, categories, and charts.
 ///
@@ -24,7 +25,13 @@ class DashboardScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Content will be added here
+              MetricCard(
+                totalSpending: 2456.32,
+                month: 'March',
+                year: 2026,
+              ),
+              const SizedBox(height: 16),
+              // More content will be added here
               const SizedBox(height: 8),
             ],
           ),
