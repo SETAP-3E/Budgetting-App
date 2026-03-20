@@ -4,6 +4,7 @@ import '../widgets/top_category_alert.dart';
 import '../widgets/spending_chart.dart';
 import '../widgets/category_card.dart';
 import '../widgets/app_footer.dart';
+import '../widgets/app_header.dart';
 import '../../data/datasources/mock_dashboard_datasource.dart';
 
 /// Dashboard screen displaying spending summary, categories, and charts.
@@ -45,8 +46,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
+      appBar: AppHeader(
+        title: 'Dashboard',
+        onMenuPressed: () {
+          // TODO: Implement drawer or navigation menu
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Menu opened')),
+          );
+        },
       ),
       body: SingleChildScrollView(
         child: Padding(
