@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 /// Interactive donut/pie chart showing spending by category.
@@ -35,6 +36,9 @@ class SpendingChart extends StatefulWidget {
 }
 
 class _SpendingChartState extends State<SpendingChart> {
+  /// Index of currently hovered segment in the chart.
+  int? _hoveredSegmentIndex;
+
   /// Get colour from palette at index.
   /// Used by the PieChart to cycle through the colour palette.
   // ignore: unused_element
@@ -48,6 +52,103 @@ class _SpendingChartState extends State<SpendingChart> {
           0xFF66BB6A, // Light Green
         ];
     return Color(colours[index % colours.length]);
+  }
+
+  /// Check if the touch event is a tap event.
+  bool _isTapEvent(FlTouchEvent event) {
+    return event.runtimeType.toString() == 'FlTapUpEvent';
+  }
+
+  /// Get category name from display categories at given index.
+  String? _getCategoryNameAt(
+    List<Map<String, dynamic>> displayCategories,
+    int index,
+  ) {
+    if (index < 0 || index >= displayCategories.length) {
+      return null;
+    }
+    return displayCategories[index]['name'] as String;
+  }
+
+  /// Calculate total spending across all display categories.
+  double _calculateTotal(List<Map<String, dynamic>> categories) {
+    return categories.fold<double>(
+      0,
+      (sum, cat) => sum + (cat['amount'] as double),
+    );
+  }
+
+  /// Build PieChartSectionData for each category with labels and interactions.
+  List<PieChartSectionData> _buildPieChartSections(
+    List<Map<String, dynamic>> categories,
+  ) {
+    final total = _calculateTotal(categories);
+
+    return List.generate(
+      categories.length,
+      (index) {
+        final category = categories[index];
+        final amount = category['amount'] as double;
+        final name = category['name'] as String;
+        final percentage = (amount / total) * 100;
+        final isHovered = _hoveredSegmentIndex == index;
+        final colour = Color(category['colour'] as int);
+
+        return PieChartSectionData(
+          color: colour,
+          value: amount,
+          radius: isHovered ? 90 : 80,
+          // Show segment label if >5% of total
+          title: percentage >= 5 ? name : null,
+          titleStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+          // Tap callback to trigger onCategoryTap
+          badgeWidget: _buildBadgeWidget(percentage, isHovered, name),
+          badgePositionPercentageOffset: 1.3,
+        );
+      },
+    );
+  }
+
+  /// Build badge widget with percentage label and hover tooltip.
+  Widget _buildBadgeWidget(
+    double percentage,
+    bool isHovered,
+    String categoryName,
+  ) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      child: Tooltip(
+        message: '$categoryName: ${percentage.toStringAsFixed(1)}%',
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          borderRadius: BorderRadius.circular(4),
+        ),
+        textStyle: const TextStyle(color: Colors.white),
+        showDuration: const Duration(milliseconds: 500),
+        child: isHovered
+            ? Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey[900],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${percentage.toStringAsFixed(1)}%',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
+            : const SizedBox.shrink(),
+      ),
+    );
   }
 
   /// Get the categories to display based on view mode.
@@ -87,27 +188,43 @@ class _SpendingChartState extends State<SpendingChart> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // TODO(dev): Implement fl_chart PieChart donut rendering
-            // - White centre (donut style)
-            // - Colour legend from customColours or default palette
-            // - Segment labels (14pt white, if >5%)
-            // - Percentage labels (12pt outside)
-            // - Hover tooltip (dark bg, white text)
-            // - Hover scaling (1.05x)
-            // - Tap callback to onCategoryTap
-            Container(
+            // fl_chart PieChart donut visualization
+            SizedBox(
               height: 280,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  'Donut Chart - '
-                  '${widget.isSimpleView ? "Simple" : "Advanced"} View\n'
-                  '${displayCategories.length} categories',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
+              child: PieChart(
+                PieChartData(
+                  centerSpaceRadius: 60,
+                  // White centre (donut style)
+                  pieTouchData: PieTouchData(
+                    touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                      setState(() {
+                        if (event.localPosition == null) {
+                          _hoveredSegmentIndex = null;
+                        } else {
+                          // ignore: lines_longer_than_80_chars
+                          _hoveredSegmentIndex = pieTouchResponse
+                              ?.touchedSection?.touchedSectionIndex;
+                        }
+                      });
+                      
+                      // Handle tap to trigger onCategoryTap callback
+                      if (_isTapEvent(event) &&
+                          pieTouchResponse?.touchedSection != null) {
+                        // ignore: lines_longer_than_80_chars
+                        final index = pieTouchResponse!.touchedSection!
+                            .touchedSectionIndex;
+                        final displayCategories = _getDisplayCategories();
+                        final catName = _getCategoryNameAt(
+                          displayCategories,
+                          index,
+                        );
+                        if (catName != null) {
+                          widget.onCategoryTap?.call(catName);
+                        }
+                      }
+                    },
+                  ),
+                  sections: _buildPieChartSections(displayCategories),
                 ),
               ),
             ),
