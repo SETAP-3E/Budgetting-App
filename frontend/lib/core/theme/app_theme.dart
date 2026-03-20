@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   // Colour palette
-  static const Color primaryGreen = Color(0xFF2E7D32);      // Progress & positive states
-  static const Color accentTeal = Color(0xFF4DB6AC);        // Warm accent
-  static const Color accentOrange = Color(0xFFFF9800);      // Warm accent
-  static const Color accentGold = Color(0xFFFFC107);        // Warm accent
-  static const Color accentLightGreen = Color(0xFF66BB6A);  // Warm accent
+  static const Color primaryTeal = Color(0xFF4DB6AC); // Primary UI colour (warm)
+  static const Color successGreen = Color(0xFF2E7D32); // Progress & positive states only
+  static const Color accentOrange = Color(0xFFFF9800); // Warm accent
+  static const Color accentGold = Color(0xFFFFC107); // Warm accent
+  static const Color accentLightGreen = Color(0xFF66BB6A); // Warm accent
   static const Color white = Color(0xFFFFFFFF);
   static const Color lightGrey = Color(0xFFF5F5F5);
   static const Color darkText = Color(0xFF212121);
@@ -16,8 +16,8 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.light(
-        primary: primaryGreen,
-        secondary: accentTeal,
+        primary: primaryTeal,
+        secondary: primaryTeal,
         tertiary: accentOrange,
         surface: white,
         background: lightGrey,
@@ -25,12 +25,12 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: lightGrey,
       appBarTheme: const AppBarTheme(
-        backgroundColor: primaryGreen,
+        backgroundColor: primaryTeal,
         foregroundColor: white,
         elevation: 0,
         centerTitle: false,
       ),
-      cardTheme: const CardTheme(
+      cardTheme: const CardThemeData(
         color: white,
         elevation: 1,
         margin: EdgeInsets.all(0),
@@ -63,11 +63,9 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryGreen,
+          backgroundColor: successGreen,
           foregroundColor: white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
       ),

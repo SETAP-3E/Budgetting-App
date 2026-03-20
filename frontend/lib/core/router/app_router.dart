@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 // TODO: Import dashboard_screen when created
@@ -14,9 +15,7 @@ final appRouter = GoRouter(
         // TODO: Replace with DashboardScreen when ready
         return Scaffold(
           appBar: AppBar(title: const Text('Dashboard')),
-          body: const Center(
-            child: Text('Dashboard Screen - Coming Soon'),
-          ),
+          body: const Center(child: Text('Dashboard Screen - Coming Soon')),
         );
       },
     ),
