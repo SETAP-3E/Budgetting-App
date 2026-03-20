@@ -40,8 +40,27 @@ Dashboard is the primary entry screen showing total spending, top category alert
 - [ ] 1.3 Create dashboard_bloc.dart with initial state and event handlers (no logic yet)
 - [ ] 1.4 Create MockDashboardDataService class with getDashboardSummary() stub
 - [ ] 1.5 Add hardcoded data to MockDashboardDataService (total £2,456.32 + 5 categories)
-- [ ] 1.6 Import dashboard_screen in go_router config
-- [ ] 1.7 Set Dashboard as home/initial route in go_router
+
+**1B: DashboardScreen Creation**
+- [ ] 1.6 Create dashboard_screen.dart file with StatelessWidget scaffold
+- [ ] 1.7 Add Scaffold widget with AppBar containing "Dashboard" title
+- [ ] 1.8 Wrap screen body with BlocProvider<DashboardBloc>
+- [ ] 1.9 Create SingleChildScrollView for main content area
+- [ ] 1.10 Add MetricCard widget displaying total spending
+- [ ] 1.11 Add TopCategoryAlert widget displaying top category
+- [ ] 1.12 Add time period selector buttons (This Month, Last Month, This Year, Custom)
+- [ ] 1.13 Add Simple/Advanced view toggle button
+- [ ] 1.14 Add SpendingChart widget displaying donut chart
+- [ ] 1.15 Add CategoryCard list section (with visibility controlled by view mode)
+- [ ] 1.16 Add AppFooter widget with 5 navigation buttons
+- [ ] 1.17 Implement BLoC state listening with BlocBuilder (loading/error/loaded states)
+- [ ] 1.18 Wire time selector buttons to emit ChangePeriod event
+- [ ] 1.19 Wire view toggle button to emit ToggleViewMode event + persist with SharedPreferences
+- [ ] 1.20 Test DashboardScreen renders correctly on hot reload
+
+**1C: Router Integration**
+- [ ] 1.21 Import dashboard_screen in go_router config
+- [ ] 1.22 Set Dashboard as home/initial route in go_router
 
 ### Phase 2: Widgets (Build in parallel)
 **2A: MetricCard**
