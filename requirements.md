@@ -34,33 +34,28 @@ Dashboard is the primary entry screen showing total spending, top category alert
 - [ ] 0.3 Configure theme (colour palette: green #2E7D32, teal #4DB6AC, etc.)
 - [ ] 0.4 Verify app launches with `flutter run -d web`
 
-### Phase 1: Setup
-- [ ] 1.1 Create dashboard_event.dart with FetchDashboard, ChangePeriod, ToggleViewMode events
-- [ ] 1.2 Create dashboard_state.dart with DashboardLoading, DashboardLoaded, DashboardError states
-- [ ] 1.3 Create dashboard_bloc.dart with initial state and event handlers (no logic yet)
-- [ ] 1.4 Create MockDashboardDataService class with getDashboardSummary() stub
-- [ ] 1.5 Add hardcoded data to MockDashboardDataService (total £2,456.32 + 5 categories)
+### Phase 1: Data Layer
+- [ ] 1.1 Create MockDashboardDataService class with getDashboardSummary() stub
+- [ ] 1.2 Add hardcoded data to MockDashboardDataService (total £2,456.32 + 5 categories)
 
 **1B: DashboardScreen Creation**
-- [ ] 1.6 Create dashboard_screen.dart file with StatelessWidget scaffold
-- [ ] 1.7 Add Scaffold widget with AppBar containing "Dashboard" title
-- [ ] 1.8 Wrap screen body with BlocProvider<DashboardBloc>
-- [ ] 1.9 Create SingleChildScrollView for main content area
-- [ ] 1.10 Add MetricCard widget displaying total spending
-- [ ] 1.11 Add TopCategoryAlert widget displaying top category
-- [ ] 1.12 Add time period selector buttons (This Month, Last Month, This Year, Custom)
-- [ ] 1.13 Add Simple/Advanced view toggle button
-- [ ] 1.14 Add SpendingChart widget displaying donut chart
-- [ ] 1.15 Add CategoryCard list section (with visibility controlled by view mode)
-- [ ] 1.16 Add AppFooter widget with 5 navigation buttons
-- [ ] 1.17 Implement BLoC state listening with BlocBuilder (loading/error/loaded states)
-- [ ] 1.18 Wire time selector buttons to emit ChangePeriod event
-- [ ] 1.19 Wire view toggle button to emit ToggleViewMode event
-- [ ] 1.20 Test DashboardScreen renders correctly on hot reload
+- [ ] 1.3 Create dashboard_screen.dart file with StatefulWidget scaffold (local state management)
+- [ ] 1.4 Add Scaffold widget with AppBar containing "Dashboard" title
+- [ ] 1.5 Create SingleChildScrollView for main content area
+- [ ] 1.6 Add MetricCard widget displaying total spending
+- [ ] 1.7 Add TopCategoryAlert widget displaying top category
+- [ ] 1.8 Add time period selector buttons (This Month, Last Month, This Year, Custom)
+- [ ] 1.9 Add Simple/Advanced view toggle button
+- [ ] 1.10 Add SpendingChart widget displaying donut chart
+- [ ] 1.11 Add CategoryCard list section (visibility controlled by view mode)
+- [ ] 1.12 Add AppFooter widget with 5 navigation buttons
+- [ ] 1.13 Wire time selector buttons to update period state
+- [ ] 1.14 Wire view toggle button to update view mode state
+- [ ] 1.15 Test dashboard renders and interactions work
 
 **1C: Router Integration**
-- [ ] 1.21 Import dashboard_screen in go_router config
-- [ ] 1.22 Set Dashboard as home/initial route in go_router
+- [ ] 1.16 Import dashboard_screen in go_router config
+- [ ] 1.17 Set Dashboard as home/initial route in go_router
 
 ### Phase 2: Widgets (Build in parallel)
 **2A: MetricCard**
@@ -99,64 +94,28 @@ Dashboard is the primary entry screen showing total spending, top category alert
 - [ ] 2D.6 Style: elevation 1, 8dp radius OR row + divider
 - [ ] 2D.7 Add onTap callback
 
-### Phase 3: Integration
-- [ ] 3.1 Create dashboard_screen.dart scaffold with Scaffold structure
-- [ ] 3.2 Add AppHeader with "Dashboard" title
-- [ ] 3.3 Add AppFooter with 5 nav buttons (Dashboard active)
-- [ ] 3.4 Wrap screen with BlocProvider<DashboardBloc>
-- [ ] 3.5 Implement time selector (This Month, Last Month, This Year, Custom buttons)
-- [ ] 3.6 Implement Simple/Advanced toggle button
-- [ ] 3.7 Layout order: Header → MetricCard → TopCategoryAlert → TimeSelector → ViewToggle → SpendingChart → CategoryList (Advanced only) → Footer
-- [ ] 3.8 Wire time selector to ChangePeriod event
-- [ ] 3.9 Wire view toggle to ToggleViewMode event
-- [ ] 3.10 Add loading state UI (progress indicator)
-- [ ] 3.11 Add error state UI (message + retry button)
-- [ ] 3.12 BLoC listens to FetchDashboard + updates UI with data
+### Phase 3: Accessibility
+- [ ] 3.1 Check all text ≥4.5:1 contrast ratio
+- [ ] 3.2 Check all buttons ≥44x44dp
+- [ ] 3.3 Test Tab navigation through all elements
+- [ ] 3.4 Test Enter key activation
+- [ ] 3.5 Add semantic labels to SpendingChart for screen readers
+- [ ] 3.6 Verify focus indicators visible on all interactive elements
+- [ ] 3.7 Verify no colour-only information (use symbols: ↑/↓/→)
 
-### Phase 4: Testing
-**4A: Unit Tests - BLoC**
-- [ ] 4A.1 Test FetchDashboard event triggers DashboardLoading → DashboardLoaded
-- [ ] 4A.2 Test ChangePeriod event updates state
-- [ ] 4A.3 Test ToggleViewMode event toggles isSimpleView flag
-- [ ] 4A.4 Test error handling (mock service failure → DashboardError)
-- [ ] 4A.5 Verify 100% BLoC code coverage
-
-**4B: Widget Tests**
-- [ ] 4B.1 Test MetricCard renders with total + month/year
-- [ ] 4B.2 Test MetricCard goal progress bar (if goal exists)
-- [ ] 4B.3 Test MetricCard "Add Spending" button (if no goal)
-- [ ] 4B.4 Test TopCategoryAlert displays category + comparison
-- [ ] 4B.5 Test SpendingChart renders donut chart within 500ms
-- [ ] 4B.6 Test SpendingChart Simple view (top 3 + Other)
-- [ ] 4B.7 Test SpendingChart Advanced view (all categories)
-- [ ] 4B.8 Test CategoryCard renders all fields
-- [ ] 4B.9 Test CategoryCard list order (highest to lowest)
-- [ ] 4B.10 Test DashboardScreen layout order
-- [ ] 4B.11 Test CategoryCard list hidden in Simple view
-- [ ] 4B.12 Verify 100% widget code coverage
-
-**4C: Accessibility**
-- [ ] 4C.1 Check all text ≥4.5:1 contrast ratio
-- [ ] 4C.2 Check all buttons ≥44x44dp
-- [ ] 4C.3 Test Tab navigation through all elements
-- [ ] 4C.4 Test Enter key activation
-- [ ] 4C.5 Add semantic labels to SpendingChart for screen readers
-- [ ] 4C.6 Verify focus indicators visible on all interactive elements
-- [ ] 4C.7 Verify no colour-only information (use symbols: ↑/↓/→)
-
-**4D: Responsive Layout**
-- [ ] 4D.1 Test mobile layout (<768px): bottom nav visible, vertical stack
-- [ ] 4D.2 Test tablet layout (768-1024px): sidebar nav, vertical stack
-- [ ] 4D.3 Test desktop layout (>1024px): sidebar nav, 2-column if space
-- [ ] 4D.4 Verify load time ≤2s on target devices
-- [ ] 4D.5 Verify interactions ≤200ms response time
+### Phase 4: Responsive Layout
+- [ ] 4.1 Test mobile layout (<768px): bottom nav visible, vertical stack
+- [ ] 4.2 Test tablet layout (768-1024px): sidebar nav, vertical stack
+- [ ] 4.3 Test desktop layout (>1024px): sidebar nav, 2-column if space
+- [ ] 4.4 Verify load time ≤2s on target devices
+- [ ] 4.5 Verify interactions ≤200ms response time
 
 ---
 
 ## Success Criteria
 ✅ Loads in ≤2s  
 ✅ All interactions ≤200ms  
-✅ 100% unit + widget test coverage  
+✅ 100% widget test coverage  
 ✅ WCAG 2.1 AA compliant  
 ✅ Responsive (mobile, tablet, desktop)  
 ✅ Plain language, no jargon  
@@ -166,10 +125,12 @@ Dashboard is the primary entry screen showing total spending, top category alert
 ---
 
 ## Dependencies
-- `flutter_bloc` (^8.0.0)
 - `go_router` (^13.0.0)
-- `fl_chart` or similar
-- `shared_preferences`
+- `fl_chart` (for donut charts)
+
+**Optional (for future BLoC migration):**
+- `flutter_bloc` (^8.0.0)
+- `shared_preferences` (for persistence)
 
 ---
 
@@ -179,7 +140,6 @@ dashboard/
 ├── data/ → datasources/ (MockDashboardDataService)
 ├── domain/ → entities, usecases
 └── presentation/
-    ├── bloc/ (dashboard_bloc.dart, events, states)
     ├── screens/ (dashboard_screen.dart)
     └── widgets/ (metric_card, top_category_alert, spending_chart, category_card)
 ```
