@@ -24,6 +24,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   String _selectedPeriod = 'this_month';
+  bool _isSimpleView = true;
 
   void _setPeriod(String period) {
     setState(() {
@@ -31,6 +32,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
     // TODO(1.18): Emit ChangePeriod event to BLoC
     // context.read<DashboardBloc>().add(ChangePeriod(period: period));
+  }
+
+  void _toggleViewMode(Set<bool> selected) {
+    setState(() {
+      _isSimpleView = selected.first;
+    });
+    // TODO(1.19): Emit ToggleViewMode event to BLoC
+    // context.read<DashboardBloc>().add(ToggleViewMode(isSimpleView: _isSimpleView));
   }
 
   @override
@@ -106,8 +115,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         label: Text('Advanced'),
                       ),
                     ],
-                    selected: {true},
-                    onSelectionChanged: (selected) {},
+                    selected: {_isSimpleView},
+                    onSelectionChanged: _toggleViewMode,
                   ),
                 ],
               ),
@@ -136,7 +145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildTopCategoryAlert() {
     final data = _getDashboardData();
     final topCategory = data['topCategory'] as Map<String, dynamic>;
-    
+
     return TopCategoryAlert(
       categoryName: topCategory['name'] as String,
       currentAmount: topCategory['currentAmount'] as double,
@@ -147,10 +156,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildCategoryList() {
     final mockData = _getDashboardData();
-    final isSimpleView = true; // TODO: Wire to BLoC state
     final categories = mockData['categories'] as List;
 
-    if (isSimpleView) {
+    if (_isSimpleView) {
       return const SizedBox.shrink();
     }
 
@@ -173,10 +181,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildSpendingChart() {
     final mockData = _getDashboardData();
-    final categories = (mockData['categories'] as List)
-        .take(3)
-        .map((c) =>
-            {
+    final allCategories = (mockData['categories'] as List)
+        .map((c) => {
               'name': c['name'] as String,
               'amount': c['amount'] as double,
               'percentage': c['percentage'] as double,
@@ -185,8 +191,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .toList();
 
     return SpendingChart(
-      categories: categories,
-      isSimpleView: true,
+      categories: allCategories,
+      isSimpleView: _isSimpleView,
     );
   }
 }

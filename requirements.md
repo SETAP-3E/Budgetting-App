@@ -17,7 +17,7 @@ Dashboard is the primary entry screen showing total spending, top category alert
 | **Chart** | SpendingChart: donut, Simple (top 3 + Other) / Advanced (all) views |
 | **Categories List** | CategoryCard: ranked, icon, amount, % bar (Advanced view only) |
 | **Time Filter** | Selector: This Month, Last Month, This Year, Custom |
-| **View Toggle** | Simple/Advanced toggle + persist via SharedPreferences |
+| **View Toggle** | Simple/Advanced toggle for view mode selection |
 | **Performance** | Load ≤2s, interactions ≤200ms, chart ≤500ms |
 | **Accessibility** | WCAG 2.1 AA: 4.5:1 contrast, 44x44dp targets, keyboard nav, screen reader labels |
 | **Responsive** | Mobile (<768px) bottom nav; Tablet (768-1024px) sidebar; Desktop (>1024px) sidebar + 2-col layout |
@@ -55,7 +55,7 @@ Dashboard is the primary entry screen showing total spending, top category alert
 - [ ] 1.16 Add AppFooter widget with 5 navigation buttons
 - [ ] 1.17 Implement BLoC state listening with BlocBuilder (loading/error/loaded states)
 - [ ] 1.18 Wire time selector buttons to emit ChangePeriod event
-- [ ] 1.19 Wire view toggle button to emit ToggleViewMode event + persist with SharedPreferences
+- [ ] 1.19 Wire view toggle button to emit ToggleViewMode event
 - [ ] 1.20 Test DashboardScreen renders correctly on hot reload
 
 **1C: Router Integration**
@@ -108,7 +108,7 @@ Dashboard is the primary entry screen showing total spending, top category alert
 - [ ] 3.6 Implement Simple/Advanced toggle button
 - [ ] 3.7 Layout order: Header → MetricCard → TopCategoryAlert → TimeSelector → ViewToggle → SpendingChart → CategoryList (Advanced only) → Footer
 - [ ] 3.8 Wire time selector to ChangePeriod event
-- [ ] 3.9 Wire view toggle to ToggleViewMode event + persistence (SharedPreferences)
+- [ ] 3.9 Wire view toggle to ToggleViewMode event
 - [ ] 3.10 Add loading state UI (progress indicator)
 - [ ] 3.11 Add error state UI (message + retry button)
 - [ ] 3.12 BLoC listens to FetchDashboard + updates UI with data
