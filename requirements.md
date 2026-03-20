@@ -22,11 +22,17 @@ Dashboard is the primary entry screen showing total spending, top category alert
 | **Accessibility** | WCAG 2.1 AA: 4.5:1 contrast, 44x44dp targets, keyboard nav, screen reader labels |
 | **Responsive** | Mobile (<768px) bottom nav; Tablet (768-1024px) sidebar; Desktop (>1024px) sidebar + 2-col layout |
 | **Language** | Plain, positive, no jargon, no red for spending |
-| **Colours** | Green #2E7D32, Teal #4DB6AC, Orange #FF9800, Gold #FFC107, Light Green #66BB6A |
+| **Colours** | **Green #2E7D32 for progress/positive states.** Warm palette for everything else: Teal #4DB6AC, Orange #FF9800, Gold #FFC107, Light Green #66BB6A (category chart cycle). Never red. |
 
 ---
 
 ## Implementation Checklist
+
+### Phase 0: Foundation
+- [ ] 0.1 Create frontend/lib/main.dart with MaterialApp + go_router configuration
+- [ ] 0.2 Set initial route to Dashboard (no auth yet)
+- [ ] 0.3 Configure theme (colour palette: green #2E7D32, teal #4DB6AC, etc.)
+- [ ] 0.4 Verify app launches with `flutter run -d web`
 
 ### Phase 1: Setup
 - [ ] 1.1 Create dashboard_event.dart with FetchDashboard, ChangePeriod, ToggleViewMode events
