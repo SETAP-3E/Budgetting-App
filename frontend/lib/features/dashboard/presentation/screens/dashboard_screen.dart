@@ -18,8 +18,17 @@ class DashboardScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Dashboard'),
       ),
-      body: const Center(
-        child: Text('Dashboard Coming Soon'),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Content will be added here
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
       ),
     );
   }
