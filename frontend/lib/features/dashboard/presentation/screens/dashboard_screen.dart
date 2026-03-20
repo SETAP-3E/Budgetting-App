@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/metric_card.dart';
 import '../widgets/top_category_alert.dart';
 import '../widgets/spending_chart.dart';
+import '../widgets/category_card.dart';
 import '../../data/datasources/mock_dashboard_datasource.dart';
 
 /// Dashboard screen displaying spending summary, categories, and charts.
@@ -94,7 +95,8 @@ class DashboardScreen extends StatelessWidget {
               // Spending chart
               _buildSpendingChart(),
               const SizedBox(height: 16),
-              // More content will be added here
+              // Category list (Advanced view only)
+              _buildCategoryList(),
               const SizedBox(height: 8),
             ],
           ),
@@ -103,11 +105,37 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildCategoryList() {
+    final mockData = MockDashboardDataService._getMockData('this_month');
+    final isSimpleView = true; // TODO: Wire to BLoC state
+    final categories = mockData['categories'] as List;
+
+    if (isSimpleView) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Spending by Category', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        ...categories.map((c) => CategoryCard(
+          rank: c['rank'] as int,
+          categoryName: c['name'] as String,
+          amount: c['amount'] as double,
+          percentage: c['percentage'] as double,
+          categoryColour: c['colour'] as int,
+        )),
+      ],
+    );
+  }
+
   Widget _buildSpendingChart() {
     final mockData = MockDashboardDataService._getMockData('this_month');
     final categories = (mockData['categories'] as List)
         .take(3)
-        .map((c) => {'name': c['name'], 'amount': c['amount'], 'colour': c['colour']})
+        .map((c) =>
+            {'name': c['name'], 'amount': c['amount'], 'colour': c['colour']})
         .toList();
 
     return SpendingChart(
