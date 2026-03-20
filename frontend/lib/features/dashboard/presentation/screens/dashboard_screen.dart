@@ -39,6 +39,34 @@ class DashboardScreen extends StatelessWidget {
                 percentage: 28,
               ),
               const SizedBox(height: 16),
+              // Time period selector
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {},
+                      child: const Text('This Month'),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      onPressed: () {},
+                      child: const Text('Last Month'),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      onPressed: () {},
+                      child: const Text('This Year'),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      onPressed: () {},
+                      child: const Text('Custom'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
               // More content will be added here
               const SizedBox(height: 8),
             ],
