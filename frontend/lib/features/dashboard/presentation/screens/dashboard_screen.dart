@@ -176,7 +176,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final categories = (mockData['categories'] as List)
         .take(3)
         .map((c) =>
-            {'name': c['name'], 'amount': c['amount'], 'colour': c['colour']})
+            {
+              'name': c['name'] as String,
+              'amount': c['amount'] as double,
+              'percentage': c['percentage'] as double,
+              'colour': c['colour'] as int,
+            })
         .toList();
 
     return SpendingChart(
