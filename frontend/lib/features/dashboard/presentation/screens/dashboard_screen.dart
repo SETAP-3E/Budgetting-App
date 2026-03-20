@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/metric_card.dart';
+import '../widgets/top_category_alert.dart';
 
 /// Dashboard screen displaying spending summary, categories, and charts.
 ///
@@ -29,6 +30,13 @@ class DashboardScreen extends StatelessWidget {
                 totalSpending: 2456.32,
                 month: 'March',
                 year: 2026,
+              ),
+              const SizedBox(height: 16),
+              TopCategoryAlert(
+                categoryName: 'Groceries',
+                currentAmount: 687.43,
+                previousAmount: 650.00,
+                percentage: 28,
               ),
               const SizedBox(height: 16),
               // More content will be added here
