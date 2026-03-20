@@ -14,9 +14,24 @@ import '../../data/datasources/mock_dashboard_datasource.dart';
 /// - Spending breakdown chart
 /// - Category list (Advanced view only)
 /// - Time period and view mode controls
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   /// Create a [DashboardScreen].
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  String _selectedPeriod = 'this_month';
+
+  void _setPeriod(String period) {
+    setState(() {
+      _selectedPeriod = period;
+    });
+    // TODO(1.18): Emit ChangePeriod event to BLoC
+    // context.read<DashboardBloc>().add(ChangePeriod(period: period));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,22 +64,30 @@ class DashboardScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: _selectedPeriod == 'this_month'
+                          ? null
+                          : () => _setPeriod('this_month'),
                       child: const Text('This Month'),
                     ),
                     const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: () {},
+                    ElevatedButton(
+                      onPressed: _selectedPeriod == 'last_month'
+                          ? null
+                          : () => _setPeriod('last_month'),
                       child: const Text('Last Month'),
                     ),
                     const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: () {},
+                    ElevatedButton(
+                      onPressed: _selectedPeriod == 'this_year'
+                          ? null
+                          : () => _setPeriod('this_year'),
                       child: const Text('This Year'),
                     ),
                     const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: () {},
+                    ElevatedButton(
+                      onPressed: _selectedPeriod == 'custom'
+                          ? null
+                          : () => _setPeriod('custom'),
                       child: const Text('Custom'),
                     ),
                   ],
