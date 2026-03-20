@@ -19,11 +19,11 @@ class MockDashboardDataService {
     // Simulate network delay
     await Future<void>.delayed(const Duration(milliseconds: 100));
 
-    return _getMockData(period);
+    return getMockData(period);
   }
 
   /// Return hardcoded mock data based on period.
-  static Map<String, dynamic> _getMockData(String period) {
+  static Map<String, dynamic> getMockData(String period) {
     // Hardcoded example data as per requirements
     return {
       'totalSpending': 2456.32,
