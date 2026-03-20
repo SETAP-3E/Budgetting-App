@@ -14,6 +14,8 @@ class BudgetingApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'Budgeting App',
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
     );
