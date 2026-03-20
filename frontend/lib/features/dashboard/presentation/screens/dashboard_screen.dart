@@ -67,6 +67,28 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              // View mode toggle
+              Row(
+                children: [
+                  const Text('View Mode:'),
+                  const SizedBox(width: 12),
+                  SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(
+                        value: true,
+                        label: Text('Simple'),
+                      ),
+                      ButtonSegment(
+                        value: false,
+                        label: Text('Advanced'),
+                      ),
+                    ],
+                    selected: {true},
+                    onSelectionChanged: (selected) {},
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               // More content will be added here
               const SizedBox(height: 8),
             ],
