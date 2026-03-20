@@ -46,17 +46,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               MetricCard(
-                totalSpending: 2456.32,
-                month: 'March',
-                year: 2026,
+                totalSpending: _getDashboardData()['totalSpending'] as double,
+                month: _getDashboardData()['month'] as String,
+                year: _getDashboardData()['year'] as int,
+                goalAmount: _getDashboardData()['goalAmount'] as double?,
               ),
               const SizedBox(height: 16),
-              TopCategoryAlert(
-                categoryName: 'Groceries',
-                currentAmount: 687.43,
-                previousAmount: 650.00,
-                percentage: 28,
-              ),
+              _buildTopCategoryAlert(),
               const SizedBox(height: 16),
               // Time period selector
               SingleChildScrollView(
@@ -133,8 +129,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Map<String, dynamic> _getDashboardData() {
+    return MockDashboardDataService.getMockData(_selectedPeriod);
+  }
+
+  Widget _buildTopCategoryAlert() {
+    final data = _getDashboardData();
+    final topCategory = data['topCategory'] as Map<String, dynamic>;
+    
+    return TopCategoryAlert(
+      categoryName: topCategory['name'] as String,
+      currentAmount: topCategory['currentAmount'] as double,
+      previousAmount: topCategory['previousAmount'] as double,
+      percentage: (topCategory['percentage'] as double).toInt().toDouble(),
+    );
+  }
+
   Widget _buildCategoryList() {
-    final mockData = MockDashboardDataService.getMockData('this_month');
+    final mockData = _getDashboardData();
     final isSimpleView = true; // TODO: Wire to BLoC state
     final categories = mockData['categories'] as List;
 
@@ -160,7 +172,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildSpendingChart() {
-    final mockData = MockDashboardDataService.getMockData('this_month');
+    final mockData = _getDashboardData();
     final categories = (mockData['categories'] as List)
         .take(3)
         .map((c) =>
