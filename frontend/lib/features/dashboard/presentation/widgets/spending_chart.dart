@@ -101,9 +101,9 @@ class _SpendingChartState extends State<SpendingChart> {
           // Show segment label if >5% of total
           title: percentage >= 5 ? name : null,
           titleStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
           // Tap callback to trigger onCategoryTap
           badgeWidget: _buildBadgeWidget(percentage, isHovered, name),
           badgePositionPercentageOffset: 1.3,
@@ -141,9 +141,9 @@ class _SpendingChartState extends State<SpendingChart> {
                 child: Text(
                   '${percentage.toStringAsFixed(1)}%',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               )
             : const SizedBox.shrink(),
@@ -159,17 +159,17 @@ class _SpendingChartState extends State<SpendingChart> {
       final otherAmount = widget.categories
           .sublist(3)
           .fold<double>(0, (sum, cat) => sum + (cat['amount'] as double));
-      
+
       return [
         ...topThree,
         {
           'name': 'Other',
           'amount': otherAmount,
           'percentage': (otherAmount /
-              widget.categories.fold<double>(
-                0,
-                (sum, cat) => sum + (cat['amount'] as double),
-              )) *
+                  widget.categories.fold<double>(
+                    0,
+                    (sum, cat) => sum + (cat['amount'] as double),
+                  )) *
               100,
           'colour': 0xFF757575, // Grey for "Other"
         },
@@ -206,13 +206,13 @@ class _SpendingChartState extends State<SpendingChart> {
                               ?.touchedSection?.touchedSectionIndex;
                         }
                       });
-                      
+
                       // Handle tap to trigger onCategoryTap callback
                       if (_isTapEvent(event) &&
                           pieTouchResponse?.touchedSection != null) {
                         // ignore: lines_longer_than_80_chars
-                        final index = pieTouchResponse!.touchedSection!
-                            .touchedSectionIndex;
+                        final index = pieTouchResponse!
+                            .touchedSection!.touchedSectionIndex;
                         final displayCategories = _getDisplayCategories();
                         final catName = _getCategoryNameAt(
                           displayCategories,
