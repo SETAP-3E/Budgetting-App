@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/metric_card.dart';
 import '../widgets/top_category_alert.dart';
+import '../widgets/spending_chart.dart';
+import '../../data/datasources/mock_dashboard_datasource.dart';
 
 /// Dashboard screen displaying spending summary, categories, and charts.
 ///
@@ -89,12 +91,28 @@ class DashboardScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
+              // Spending chart
+              _buildSpendingChart(),
+              const SizedBox(height: 16),
               // More content will be added here
               const SizedBox(height: 8),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSpendingChart() {
+    final mockData = MockDashboardDataService._getMockData('this_month');
+    final categories = (mockData['categories'] as List)
+        .take(3)
+        .map((c) => {'name': c['name'], 'amount': c['amount'], 'colour': c['colour']})
+        .toList();
+
+    return SpendingChart(
+      categories: categories,
+      isSimpleView: true,
     );
   }
 }
