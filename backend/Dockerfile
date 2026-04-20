@@ -3,7 +3,7 @@ FROM dart:stable AS build
 
 WORKDIR /app
 
-COPY pubspec.yaml pubspec.lock ./
+COPY pubspec.yaml ./
 RUN dart pub get
 
 COPY . .
