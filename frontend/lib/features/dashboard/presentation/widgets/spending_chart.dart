@@ -89,7 +89,6 @@ class _SpendingChartState extends State<SpendingChart> {
       (index) {
         final category = categories[index];
         final amount = category['amount'] as double;
-        final name = category['name'] as String;
         final percentage = (amount / total) * 100;
         final isHovered = _hoveredSegmentIndex == index;
         final colour = Color(category['colour'] as int);
@@ -99,59 +98,19 @@ class _SpendingChartState extends State<SpendingChart> {
           value: amount,
           radius: isHovered ? 90 : 80,
           // Show segment label if >5% of total
-          title: percentage >= 5 ? name : null,
-          titleStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+          title: widget.showPercentages && percentage >= 5
+              ? '${percentage.toStringAsFixed(1)}%'
+              : null,
+          titleStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
-          // Tap callback to trigger onCategoryTap
-          badgeWidget: _buildBadgeWidget(percentage, isHovered, name),
-          badgePositionPercentageOffset: 1.3,
         );
       },
     );
   }
 
-  /// Build badge widget with percentage label and hover tooltip.
-  Widget _buildBadgeWidget(
-    double percentage,
-    bool isHovered,
-    String categoryName,
-  ) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      child: Tooltip(
-        message: '$categoryName: ${percentage.toStringAsFixed(1)}%',
-        decoration: BoxDecoration(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(4),
-        ),
-        textStyle: const TextStyle(color: Colors.white),
-        showDuration: const Duration(milliseconds: 500),
-        child: isHovered
-            ? Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.grey[900],
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  '${percentage.toStringAsFixed(1)}%',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              )
-            : const SizedBox.shrink(),
-      ),
-    );
-  }
-
-  /// Get the categories to display based on view mode.
+/// Get the categories to display based on view mode.
   List<Map<String, dynamic>> _getDisplayCategories() {
     if (widget.isSimpleView && widget.categories.length > 3) {
       // Simple: top 3 + Other
