@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/features/transactions/presentation/widgets/add_expense_sheet.dart';
 import 'package:flutter/material.dart';
 import '../widgets/metric_card.dart';
 import '../widgets/top_category_alert.dart';
@@ -26,6 +27,17 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   String _selectedPeriod = 'this_month';
   bool _isSimpleView = true;
+
+  void _openAddExpenseSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => const AddExpenseSheet(),
+    );
+  }
 
   void _setPeriod(String period) {
     setState(() {
@@ -66,6 +78,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 month: _getDashboardData()['month'] as String,
                 year: _getDashboardData()['year'] as int,
                 goalAmount: _getDashboardData()['goalAmount'] as double?,
+                onAddSpending: _openAddExpenseSheet,
               ),
               const SizedBox(height: 16),
               _buildTopCategoryAlert(),
