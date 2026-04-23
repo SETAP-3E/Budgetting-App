@@ -1,13 +1,12 @@
-import 'package:budgetting_frontend/features/transactions/data/datasources/mock_transactions_datasource.dart';
-import 'package:budgetting_frontend/features/transactions/domain/models/transaction_model.dart';
+import 'package:budgetting_frontend/features/transactions/data/datasources/transactions_api_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Bottom sheet modal for logging a new expense.
 ///
-/// Presents fields for amount, location, and category.
-/// When "Other" is selected as category, a custom name field is revealed.
-/// On save, the expense is stored via [MockTransactionsDatasource].
+/// Loads categories from the API on open. Selecting "Other" reveals a
+/// free-text field for a custom category name. Saves via
+/// [TransactionsApiClient].
 class AddExpenseSheet extends StatefulWidget {
   /// Create an [AddExpenseSheet].
   const AddExpenseSheet({super.key});
@@ -22,10 +21,42 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   final _locationController = TextEditingController();
   final _customCategoryController = TextEditingController();
 
-  String? _selectedCategory;
-  static const String _otherCategory = 'Other';
+  final _apiClient = TransactionsApiClient();
 
-  bool get _isOtherSelected => _selectedCategory == _otherCategory;
+  List<Map<String, dynamic>> _categories = [];
+  bool _loadingCategories = true;
+  String? _categoryError;
+
+  // Selected category map from API: {id, name, ...} or null for 'Other'.
+  Map<String, dynamic>? _selectedCategory;
+  static const String _otherId = '__other__';
+
+  bool get _isOtherSelected => _selectedCategory?['id'] == _otherId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final cats = await _apiClient.getCategories();
+      if (mounted) {
+        setState(() {
+          _categories = cats;
+          _loadingCategories = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _categoryError = 'Could not load categories. Is the server running?';
+          _loadingCategories = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -35,30 +66,41 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final categoryName = _isOtherSelected
-        ? _customCategoryController.text.trim()
-        : _selectedCategory!;
+    final amount = double.parse(_amountController.text.trim());
+    final location = _locationController.text.trim();
+    final today = DateTime.now();
+    final dateStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}'
+        '-${today.day.toString().padLeft(2, '0')}';
 
-    MockTransactionsDatasource.addTransaction(
-      TransactionModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        amount: double.parse(_amountController.text.trim()),
-        location: _locationController.text.trim().isEmpty
+    try {
+      await _apiClient.createTransaction(
+        amount: amount,
+        transactionDate: dateStr,
+        categoryId: _isOtherSelected
             ? null
-            : _locationController.text.trim(),
-        categoryName: categoryName,
-        date: DateTime.now(),
-      ),
-    );
+            : _selectedCategory!['id'] as String,
+        newCategoryName:
+            _isOtherSelected ? _customCategoryController.text.trim() : null,
+        description: location.isEmpty ? null : location,
+      );
 
-    Navigator.of(context).pop();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Expense saved')),
-    );
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Expense saved')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save expense')),
+        );
+      }
+    }
   }
 
   @override
@@ -123,34 +165,49 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
             ),
             const SizedBox(height: 16),
             // Category dropdown
-            DropdownButtonFormField<String>(
-              initialValue: _selectedCategory,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.category_outlined),
+            if (_loadingCategories)
+              const Center(child: CircularProgressIndicator())
+            else if (_categoryError != null)
+              Text(
+                _categoryError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              )
+            else
+              DropdownButtonFormField<String>(
+                initialValue: _selectedCategory?['id'] as String?,
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.category_outlined),
+                ),
+                items: [
+                  ..._categories.map(
+                    (cat) => DropdownMenuItem(
+                      value: cat['id'] as String,
+                      child: Text(cat['name'] as String),
+                    ),
+                  ),
+                  const DropdownMenuItem(
+                    value: _otherId,
+                    child: Text('Other'),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCategory = value == _otherId
+                        ? {'id': _otherId}
+                        : _categories.firstWhere(
+                            (c) => c['id'] == value,
+                          );
+                    if (!_isOtherSelected) {
+                      _customCategoryController.clear();
+                    }
+                  });
+                },
+                validator: (value) =>
+                    value == null ? 'Please select a category' : null,
               ),
-              items: [
-                ...MockTransactionsDatasource.predefinedCategories.map(
-                  (cat) => DropdownMenuItem(value: cat, child: Text(cat)),
-                ),
-                const DropdownMenuItem(
-                  value: _otherCategory,
-                  child: Text('Other'),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedCategory = value;
-                  if (!_isOtherSelected) {
-                    _customCategoryController.clear();
-                  }
-                });
-              },
-              validator: (value) =>
-                  value == null ? 'Please select a category' : null,
-            ),
-            // Custom category field — shown only when "Other" is selected
+            // Custom category field — visible only when 'Other' selected
             if (_isOtherSelected) ...[
               const SizedBox(height: 16),
               TextFormField(
@@ -172,7 +229,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
             ],
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: _save,
+              onPressed: _loadingCategories ? null : _save,
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 4),
                 child: Text('Save Expense'),
