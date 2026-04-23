@@ -1,5 +1,6 @@
 import 'package:budgetting_frontend/features/transactions/presentation/widgets/add_expense_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../widgets/metric_card.dart';
 import '../widgets/top_category_alert.dart';
 import '../widgets/spending_chart.dart';
@@ -153,7 +154,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       bottomNavigationBar: AppFooter(
         activeIndex: 0,
-        onNavigation: (index) {},
+        onNavigation: (index) {
+          if (index == 3) context.go('/transactions');
+        },
       ),
     );
   }
