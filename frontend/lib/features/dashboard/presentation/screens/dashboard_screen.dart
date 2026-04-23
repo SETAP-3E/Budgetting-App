@@ -5,6 +5,7 @@ import 'package:budgetting_frontend/features/dashboard/presentation/widgets/cate
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/metric_card.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/spending_chart.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/top_category_alert.dart';
+import 'package:budgetting_frontend/features/transactions/presentation/widgets/add_expense_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -27,6 +28,17 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   String _selectedPeriod = 'this_month';
   bool _isSimpleView = true;
+
+  void _openAddExpenseSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => const AddExpenseSheet(),
+    );
+  }
 
   void _setPeriod(String period) {
     setState(() {
@@ -67,6 +79,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 month: _getDashboardData()['month'] as String,
                 year: _getDashboardData()['year'] as int,
                 goalAmount: _getDashboardData()['goalAmount'] as double?,
+                onAddSpending: _openAddExpenseSheet,
               ),
               const SizedBox(height: 16),
               _buildTopCategoryAlert(),
@@ -140,6 +153,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       bottomNavigationBar: AppFooter(
+        activeIndex: 0,
         onNavigation: (index) => _onFooterNavigation(context, index),
       ),
     );
@@ -150,7 +164,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 0:
         return;
       case 1:
-        context.goNamed('accounts');
+        context.go('/accounts');
+        return;
+      case 2:
+        context.go('/budgets');
+        return;
+      case 3:
+        context.go('/transactions');
         return;
       default:
         ScaffoldMessenger.of(context).showSnackBar(

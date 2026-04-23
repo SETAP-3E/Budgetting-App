@@ -1,0 +1,103 @@
+import 'dart:io';
+
+import 'package:budgetting_backend/repositories/category_repository.dart';
+import 'package:budgetting_backend/repositories/transaction_repository.dart';
+import 'package:dart_frog/dart_frog.dart';
+import 'package:postgres/postgres.dart';
+
+/// GET  /transactions?user_id=...   — list transactions for a user
+/// POST /transactions               — create a new transaction
+Future<Response> onRequest(RequestContext context) async {
+  switch (context.request.method) {
+    case HttpMethod.get:
+      return _getTransactions(context);
+    case HttpMethod.post:
+      return _createTransaction(context);
+    case HttpMethod.delete:
+    case HttpMethod.head:
+    case HttpMethod.options:
+    case HttpMethod.patch:
+    case HttpMethod.put:
+      return Response(statusCode: HttpStatus.methodNotAllowed);
+  }
+}
+
+Future<Response> _getTransactions(RequestContext context) async {
+  final userId = context.request.uri.queryParameters['user_id'];
+  if (userId == null || userId.isEmpty) {
+    return Response.json(
+      statusCode: 400,
+      body: {'error': 'user_id query parameter is required'},
+    );
+  }
+
+  final connection = await context.read<Future<Connection>>();
+  final repo = TransactionRepository(connection);
+  final transactions = await repo.getTransactions(userId);
+
+  return Response.json(
+    body: transactions.map((t) => t.toJson()).toList(),
+  );
+}
+
+Future<Response> _createTransaction(RequestContext context) async {
+  final body = await context.request.json() as Map<String, dynamic>;
+
+  final userId = body['user_id'] as String?;
+  final accountId = body['account_id'] as String?;
+  final amount = (body['amount'] as num?)?.toDouble();
+  final transactionDate = body['transaction_date'] as String?;
+
+  if (userId == null ||
+      accountId == null ||
+      amount == null ||
+      transactionDate == null) {
+    return Response.json(
+      statusCode: 400,
+      body: {
+        'error':
+            'user_id, account_id, amount and transaction_date are required',
+      },
+    );
+  }
+
+  if (amount <= 0) {
+    return Response.json(
+      statusCode: 400,
+      body: {'error': 'amount must be greater than 0'},
+    );
+  }
+
+  final connection = await context.read<Future<Connection>>();
+  final categoryRepo = CategoryRepository(connection);
+  final transactionRepo = TransactionRepository(connection);
+
+  // Resolve category: use provided category_id or create custom from name.
+  final String categoryId;
+  final categoryIdParam = body['category_id'] as String?;
+  final newCategoryName = body['new_category_name'] as String?;
+
+  if (categoryIdParam != null && categoryIdParam.isNotEmpty) {
+    categoryId = categoryIdParam;
+  } else if (newCategoryName != null && newCategoryName.isNotEmpty) {
+    final category =
+        await categoryRepo.findOrCreateCustom(userId, newCategoryName);
+    categoryId = category.id;
+  } else {
+    return Response.json(
+      statusCode: 400,
+      body: {'error': 'Either category_id or new_category_name is required'},
+    );
+  }
+
+  final transaction = await transactionRepo.createTransaction(
+    userId: userId,
+    accountId: accountId,
+    categoryId: categoryId,
+    amount: amount,
+    transactionDate: transactionDate,
+    description: body['description'] as String?,
+  );
+
+  return Response.json(statusCode: 201, body: transaction.toJson());
+}

@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 
 /// List item card displaying a category's rank, spending, and percentage.
@@ -118,7 +119,7 @@ class CategoryCard extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              '£${amount.toStringAsFixed(2)}',
+                              formatCurrency(amount),
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                             const SizedBox(width: 8),
