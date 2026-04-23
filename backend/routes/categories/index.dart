@@ -19,9 +19,16 @@ Future<Response> onRequest(RequestContext context) async {
     );
   }
 
-  final connection = await context.read<Future<Connection>>();
-  final repo = CategoryRepository(connection);
-  final categories = await repo.getCategories(userId);
-
-  return Response.json(body: categories.map((c) => c.toJson()).toList());
+  try {
+    final connection = await context.read<Future<Connection>>();
+    final repo = CategoryRepository(connection);
+    final categories = await repo.getCategories(userId);
+    return Response.json(body: categories.map((c) => c.toJson()).toList());
+  } catch (e, st) {
+    print('ERROR in /categories: $e\n$st');
+    return Response.json(
+      statusCode: 500,
+      body: {'error': e.toString()},
+    );
+  }
 }

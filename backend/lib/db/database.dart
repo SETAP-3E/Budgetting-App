@@ -16,7 +16,7 @@ class Database {
     if (_connection != null) return _connection!;
 
     final host = Platform.environment['DB_HOST'] ?? 'localhost';
-    final port = int.tryParse(Platform.environment['DB_PORT'] ?? '') ?? 5432;
+    final port = int.tryParse(Platform.environment['DB_PORT'] ?? '') ?? 5433;
     final database = Platform.environment['DB_NAME'] ?? 'budgetting';
     final username = Platform.environment['DB_USER'] ?? 'budgetting_user';
     final password = Platform.environment['DB_PASSWORD'] ?? 'changeme';
