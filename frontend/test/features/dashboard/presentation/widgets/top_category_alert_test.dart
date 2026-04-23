@@ -16,7 +16,7 @@ void main() {
               child: TopCategoryAlert(
                 categoryName: 'Groceries',
                 currentAmount: 687.43,
-                previousAmount: 650.00,
+                previousAmount: 650,
                 percentage: 28,
               ),
             ),
@@ -40,7 +40,7 @@ void main() {
               child: TopCategoryAlert(
                 categoryName: 'Utilities',
                 currentAmount: 342.50,
-                previousAmount: 320.00,
+                previousAmount: 320,
                 percentage: 14,
               ),
             ),
@@ -62,8 +62,8 @@ void main() {
               padding: EdgeInsets.all(16),
               child: TopCategoryAlert(
                 categoryName: 'Entertainment',
-                currentAmount: 300.00,
-                previousAmount: 250.00,
+                currentAmount: 300,
+                previousAmount: 250,
                 percentage: 12,
               ),
             ),
@@ -86,8 +86,8 @@ void main() {
               padding: EdgeInsets.all(16),
               child: TopCategoryAlert(
                 categoryName: 'Dining Out',
-                currentAmount: 200.00,
-                previousAmount: 250.00,
+                currentAmount: 200,
+                previousAmount: 250,
                 percentage: 8,
               ),
             ),
@@ -110,8 +110,8 @@ void main() {
               padding: EdgeInsets.all(16),
               child: TopCategoryAlert(
                 categoryName: 'Transport',
-                currentAmount: 200.00,
-                previousAmount: 200.00,
+                currentAmount: 200,
+                previousAmount: 200,
                 percentage: 8,
               ),
             ),
@@ -134,8 +134,8 @@ void main() {
               padding: EdgeInsets.all(16),
               child: TopCategoryAlert(
                 categoryName: 'Groceries',
-                currentAmount: 500.00,
-                previousAmount: 480.00,
+                currentAmount: 500,
+                previousAmount: 480,
                 percentage: 20,
                 categoryIcon: Icons.shopping_cart,
               ),
@@ -158,8 +158,8 @@ void main() {
               padding: EdgeInsets.all(16),
               child: TopCategoryAlert(
                 categoryName: 'Groceries',
-                currentAmount: 500.00,
-                previousAmount: 480.00,
+                currentAmount: 500,
+                previousAmount: 480,
                 percentage: 20,
               ),
             ),
@@ -182,8 +182,8 @@ void main() {
               padding: EdgeInsets.all(16),
               child: TopCategoryAlert(
                 categoryName: 'Groceries',
-                currentAmount: 500.00,
-                previousAmount: 480.00,
+                currentAmount: 500,
+                previousAmount: 480,
                 percentage: 20,
                 categoryIcon: Icons.shopping_cart,
                 categoryColour: customColour,
@@ -210,8 +210,8 @@ void main() {
               padding: EdgeInsets.all(16),
               child: TopCategoryAlert(
                 categoryName: 'Groceries',
-                currentAmount: 500.00,
-                previousAmount: 480.00,
+                currentAmount: 500,
+                previousAmount: 480,
                 percentage: 20,
                 categoryColour: customColour,
               ),
@@ -226,7 +226,7 @@ void main() {
     testWidgets('calls onTap when card is tapped', (
       WidgetTester tester,
     ) async {
-      bool wasTapped = false;
+      var wasTapped = false;
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData(useMaterial3: true),
@@ -235,8 +235,8 @@ void main() {
               padding: const EdgeInsets.all(16),
               child: TopCategoryAlert(
                 categoryName: 'Groceries',
-                currentAmount: 500.00,
-                previousAmount: 480.00,
+                currentAmount: 500,
+                previousAmount: 480,
                 percentage: 20,
                 onTap: () => wasTapped = true,
               ),
@@ -262,8 +262,8 @@ void main() {
               padding: EdgeInsets.all(16),
               child: TopCategoryAlert(
                 categoryName: 'Other',
-                currentAmount: 50.00,
-                previousAmount: 45.00,
+                currentAmount: 50,
+                previousAmount: 45,
                 percentage: 2,
               ),
             ),
@@ -285,8 +285,8 @@ void main() {
               padding: EdgeInsets.all(16),
               child: TopCategoryAlert(
                 categoryName: 'Groceries',
-                currentAmount: 1000.00,
-                previousAmount: 950.00,
+                currentAmount: 1000,
+                previousAmount: 950,
                 percentage: 40,
               ),
             ),
@@ -308,8 +308,8 @@ void main() {
               padding: EdgeInsets.all(16),
               child: TopCategoryAlert(
                 categoryName: 'Utilities',
-                currentAmount: 300.00,
-                previousAmount: 280.00,
+                currentAmount: 300,
+                previousAmount: 280,
                 percentage: 12,
               ),
             ),
@@ -332,8 +332,8 @@ void main() {
               padding: EdgeInsets.all(16),
               child: TopCategoryAlert(
                 categoryName: 'Transport',
-                currentAmount: 150.00,
-                previousAmount: 150.00,
+                currentAmount: 150,
+                previousAmount: 150,
                 percentage: 6,
               ),
             ),
@@ -357,7 +357,7 @@ void main() {
               child: TopCategoryAlert(
                 categoryName: 'Groceries',
                 currentAmount: 687.43,
-                previousAmount: 650.00,
+                previousAmount: 650,
                 percentage: 28,
               ),
             ),

@@ -97,7 +97,7 @@ void main() {
     testWidgets('calls onAddSpending when button tapped', (
       WidgetTester tester,
     ) async {
-      bool wasPressed = false;
+      var wasPressed = false;
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData(useMaterial3: true),

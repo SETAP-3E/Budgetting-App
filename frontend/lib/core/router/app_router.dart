@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:budgetting_frontend/features/accounts/presentation/screens/accounts_screen.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:go_router/go_router.dart';
 
+/// Application router configuration.
 final appRouter = GoRouter(
   initialLocation: '/',
   routes: [
@@ -10,6 +11,11 @@ final appRouter = GoRouter(
       path: '/',
       name: 'dashboard',
       builder: (context, state) => const DashboardScreen(),
+    ),
+    GoRoute(
+      path: '/accounts',
+      name: 'accounts',
+      builder: (context, state) => const AccountsScreen(),
     ),
   ],
 );

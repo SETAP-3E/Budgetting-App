@@ -22,12 +22,10 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.light(
+      colorScheme: const ColorScheme.light(
         primary: primaryTeal,
         secondary: primaryTeal,
         tertiary: accentOrange,
-        surface: white,
-        background: lightGrey,
         error: Colors.red, // Kept for validation, but not used for spending
       ),
       scaffoldBackgroundColor: lightGrey,
@@ -82,12 +80,11 @@ class AppTheme {
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.dark(
+      colorScheme: const ColorScheme.dark(
         primary: primaryTeal,
         secondary: primaryTeal,
         tertiary: accentOrange,
         surface: darkSurface,
-        background: darkBg,
         error: Colors.red,
       ),
       scaffoldBackgroundColor: darkBg,
