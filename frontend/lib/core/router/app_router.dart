@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/features/accounts/presentation/screens/accounts_screen.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/screens/budgets_screen.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:budgetting_frontend/features/transactions/presentation/screens/transactions_screen.dart';
@@ -12,6 +13,11 @@ final appRouter = GoRouter(
       path: '/',
       name: 'dashboard',
       builder: (context, state) => const DashboardScreen(),
+    ),
+    GoRoute(
+      path: '/accounts',
+      name: 'accounts',
+      builder: (context, state) => const AccountsScreen(),
     ),
     // Transactions list route
     GoRoute(

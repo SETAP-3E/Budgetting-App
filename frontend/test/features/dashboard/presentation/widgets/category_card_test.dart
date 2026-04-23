@@ -8,13 +8,13 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: CategoryCard(
               rank: 1,
               categoryName: 'Groceries',
               amount: 687.43,
-              percentage: 28.0,
+              percentage: 28,
             ),
           ),
         ),
@@ -27,13 +27,13 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: CategoryCard(
               rank: 2,
               categoryName: 'Utilities',
               amount: 342.50,
-              percentage: 14.0,
+              percentage: 14,
             ),
           ),
         ),
@@ -46,13 +46,13 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: CategoryCard(
               rank: 3,
               categoryName: 'Entertainment',
               amount: 289.20,
-              percentage: 12.0,
+              percentage: 12,
             ),
           ),
         ),
@@ -65,13 +65,13 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: CategoryCard(
               rank: 1,
               categoryName: 'Groceries',
               amount: 687.43,
-              percentage: 28.0,
+              percentage: 28,
             ),
           ),
         ),
@@ -84,13 +84,13 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: CategoryCard(
               rank: 1,
               categoryName: 'Groceries',
               amount: 687.43,
-              percentage: 28.0,
+              percentage: 28,
               categoryIcon: Icons.shopping_cart,
             ),
           ),
@@ -104,13 +104,13 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: CategoryCard(
               rank: 1,
               categoryName: 'Groceries',
               amount: 687.43,
-              percentage: 28.0,
+              percentage: 28,
             ),
           ),
         ),
@@ -123,13 +123,13 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: CategoryCard(
               rank: 1,
               categoryName: 'Groceries',
               amount: 687.43,
-              percentage: 28.0,
+              percentage: 28,
             ),
           ),
         ),
@@ -145,13 +145,13 @@ void main() {
       const customColour = 0xFFFF9800; // Orange
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: CategoryCard(
               rank: 1,
               categoryName: 'Dining Out',
               amount: 245.67,
-              percentage: 10.0,
+              percentage: 10,
               categoryIcon: Icons.restaurant,
               categoryColour: customColour,
             ),
@@ -166,7 +166,7 @@ void main() {
     testWidgets('triggers onTap callback when card is tapped', (
       WidgetTester tester,
     ) async {
-      bool tapped = false;
+      var tapped = false;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -175,7 +175,7 @@ void main() {
               rank: 1,
               categoryName: 'Groceries',
               amount: 687.43,
-              percentage: 28.0,
+              percentage: 28,
               onTap: () {
                 tapped = true;
               },
@@ -194,14 +194,14 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: CategoryCard(
               rank: 1,
               categoryName:
                   'Very Long Category Name That Should Not Break Layout',
               amount: 123.45,
-              percentage: 5.0,
+              percentage: 5,
             ),
           ),
         ),
@@ -220,21 +220,21 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Column(
               children: [
                 CategoryCard(
                   rank: 1,
                   categoryName: 'Cat1',
-                  amount: 100.0,
-                  percentage: 10.0,
+                  amount: 100,
+                  percentage: 10,
                 ),
                 CategoryCard(
                   rank: 5,
                   categoryName: 'Cat5',
-                  amount: 50.0,
-                  percentage: 5.0,
+                  amount: 50,
+                  percentage: 5,
                 ),
               ],
             ),
@@ -253,24 +253,24 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: ListView(
-              children: [
+              children: const [
                 CategoryCard(
                   rank: 1,
                   categoryName: 'Groceries',
                   amount: 687.43,
-                  percentage: 28.0,
+                  percentage: 28,
                 ),
                 CategoryCard(
                   rank: 2,
                   categoryName: 'Utilities',
                   amount: 342.50,
-                  percentage: 14.0,
+                  percentage: 14,
                 ),
                 CategoryCard(
                   rank: 3,
                   categoryName: 'Entertainment',
                   amount: 289.20,
-                  percentage: 12.0,
+                  percentage: 12,
                 ),
               ],
             ),
@@ -288,7 +288,7 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: CategoryCard(
               rank: 5,

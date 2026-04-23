@@ -1,13 +1,13 @@
+import 'package:budgetting_frontend/features/dashboard/data/datasources/mock_dashboard_datasource.dart';
+import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
+import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
+import 'package:budgetting_frontend/features/dashboard/presentation/widgets/category_card.dart';
+import 'package:budgetting_frontend/features/dashboard/presentation/widgets/metric_card.dart';
+import 'package:budgetting_frontend/features/dashboard/presentation/widgets/spending_chart.dart';
+import 'package:budgetting_frontend/features/dashboard/presentation/widgets/top_category_alert.dart';
 import 'package:budgetting_frontend/features/transactions/presentation/widgets/add_expense_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../widgets/metric_card.dart';
-import '../widgets/top_category_alert.dart';
-import '../widgets/spending_chart.dart';
-import '../widgets/category_card.dart';
-import '../widgets/app_footer.dart';
-import '../widgets/app_header.dart';
-import '../../data/datasources/mock_dashboard_datasource.dart';
 
 /// Dashboard screen displaying spending summary, categories, and charts.
 ///
@@ -70,7 +70,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -154,12 +154,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       bottomNavigationBar: AppFooter(
         activeIndex: 0,
-        onNavigation: (index) {
-          if (index == 2) context.go('/budgets');
-          if (index == 3) context.go('/transactions');
-        },
+        onNavigation: (index) => _onFooterNavigation(context, index),
       ),
     );
+  }
+
+  void _onFooterNavigation(BuildContext context, int index) {
+    switch (index) {
+      case 0:
+        return;
+      case 1:
+        context.go('/accounts');
+        return;
+      case 2:
+        context.go('/budgets');
+        return;
+      case 3:
+        context.go('/transactions');
+        return;
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This section is coming soon')),
+        );
+        return;
+    }
   }
 
   Map<String, dynamic> _getDashboardData() {
@@ -190,7 +208,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Spending by Category',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),),
         const SizedBox(height: 12),
         ...categories.map((c) => CategoryCard(
               rank: c['rank'] as int,
@@ -198,7 +216,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               amount: c['amount'] as double,
               percentage: c['percentage'] as double,
               categoryColour: c['colour'] as int,
-            )),
+            ),),
       ],
     );
   }
@@ -211,7 +229,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               'amount': c['amount'] as double,
               'percentage': c['percentage'] as double,
               'colour': c['colour'] as int,
-            })
+            },)
         .toList();
 
     return SpendingChart(
