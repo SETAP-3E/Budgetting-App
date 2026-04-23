@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 
 /// Displays total spending for a period with optional goal progress.
@@ -40,7 +41,7 @@ class MetricCard extends StatelessWidget {
           children: [
             // Total spending amount (36pt bold)
             Text(
-              '£${totalSpending.toStringAsFixed(2)}',
+              formatCurrency(totalSpending),
               style: Theme.of(context).textTheme.displayLarge,
             ),
             const SizedBox(height: 8),

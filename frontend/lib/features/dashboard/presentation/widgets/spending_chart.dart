@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -219,7 +220,7 @@ class _SpendingChartState extends State<SpendingChart> {
                 Expanded(
                   child: Text(
                     '${category['name']} • '
-                    '£${(category['amount'] as double).toStringAsFixed(2)}',
+                    '${formatCurrency(category['amount'] as double)}',
                     style: Theme.of(context).textTheme.labelSmall,
                   ),
                 ),

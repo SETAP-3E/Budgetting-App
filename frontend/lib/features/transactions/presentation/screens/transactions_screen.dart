@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
 import 'package:budgetting_frontend/features/transactions/data/datasources/transactions_api_client.dart';
@@ -160,7 +161,7 @@ class _TransactionTile extends StatelessWidget {
             : dateStr,
       ),
       trailing: Text(
-        '£${transaction.amount.toStringAsFixed(2)}',
+        formatCurrency(transaction.amount),
         style: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 15,
