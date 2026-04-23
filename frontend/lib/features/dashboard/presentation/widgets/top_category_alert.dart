@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 
 /// Displays top category with month-over-month spending comparison.
@@ -53,9 +54,9 @@ class TopCategoryAlert extends StatelessWidget {
   String _getComparisonText() {
     final difference = (currentAmount - previousAmount).abs();
     if (currentAmount > previousAmount) {
-      return '£${difference.toStringAsFixed(2)} more than last month';
+      return '${formatCurrency(difference)} more than last month';
     } else if (currentAmount < previousAmount) {
-      return '£${difference.toStringAsFixed(2)} less than last month';
+      return '${formatCurrency(difference)} less than last month';
     } else {
       return 'Same as last month';
     }
@@ -118,7 +119,7 @@ class TopCategoryAlert extends StatelessWidget {
               const SizedBox(height: 12),
               // Current amount (20pt bold)
               Text(
-                '£${currentAmount.toStringAsFixed(2)}',
+                formatCurrency(currentAmount),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,

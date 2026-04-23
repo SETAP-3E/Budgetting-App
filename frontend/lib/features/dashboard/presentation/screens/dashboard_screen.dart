@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/features/transactions/presentation/widgets/add_expense_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/metric_card.dart';
@@ -27,6 +28,17 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   String _selectedPeriod = 'this_month';
   bool _isSimpleView = true;
+
+  void _openAddExpenseSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => const AddExpenseSheet(),
+    );
+  }
 
   void _setPeriod(String period) {
     setState(() {
@@ -67,6 +79,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 month: _getDashboardData()['month'] as String,
                 year: _getDashboardData()['year'] as int,
                 goalAmount: _getDashboardData()['goalAmount'] as double?,
+                onAddSpending: _openAddExpenseSheet,
               ),
               const SizedBox(height: 16),
               _buildTopCategoryAlert(),
@@ -142,16 +155,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       bottomNavigationBar: AppFooter(
         activeIndex: 0,
         onNavigation: (index) {
-          switch (index) {
-            case 2: // Budgets
-              context.go('/budgets');
-              break;
-            default:
-              // TODO: Implement navigation for other screens
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Navigation to screen $index not implemented yet')),
-              );
-          }
+          if (index == 2) context.go('/budgets');
+          if (index == 3) context.go('/transactions');
         },
       ),
     );

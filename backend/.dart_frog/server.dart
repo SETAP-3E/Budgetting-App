@@ -1,0 +1,55 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, implicit_dynamic_list_literal
+
+import 'dart:io';
+
+import 'package:dart_frog/dart_frog.dart';
+
+
+import '../routes/users/users.dart' as users_users;
+import '../routes/transactions/index.dart' as transactions_index;
+import '../routes/categories/index.dart' as categories_index;
+
+import '../routes/_middleware.dart' as middleware;
+
+void main() async {
+  final address = InternetAddress.tryParse('') ?? InternetAddress.anyIPv6;
+  final port = int.tryParse(Platform.environment['PORT'] ?? '8080') ?? 8080;
+  hotReload(() => createServer(address, port));
+}
+
+Future<HttpServer> createServer(InternetAddress address, int port) {
+  final handler = Cascade().add(buildRootHandler()).handler;
+  return serve(handler, address, port);
+}
+
+Handler buildRootHandler() {
+  final pipeline = const Pipeline().addMiddleware(middleware.middleware);
+  final router = Router()
+    ..mount('/users', (context) => buildUsersHandler()(context))
+    ..mount('/transactions', (context) => buildTransactionsHandler()(context))
+    ..mount('/categories', (context) => buildCategoriesHandler()(context));
+  return pipeline.addHandler(router);
+}
+
+Handler buildUsersHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/users', (context) => users_users.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildTransactionsHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => transactions_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildCategoriesHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => categories_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
