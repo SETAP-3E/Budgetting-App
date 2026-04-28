@@ -7,6 +7,8 @@ class TransactionModel {
     required this.categoryName,
     required this.date,
     this.location,
+    this.latitude,
+    this.longitude,
   });
 
   /// Unique identifier for this transaction.
@@ -15,7 +17,7 @@ class TransactionModel {
   /// Amount spent in GBP (must be > 0).
   final double amount;
 
-  /// Optional rough location description (e.g. "Tesco, High Street").
+  /// Human-readable place name (e.g. "Tesco Warwick"), set via Places search.
   final String? location;
 
   /// Name of the spending category (predefined or custom).
@@ -23,4 +25,10 @@ class TransactionModel {
 
   /// Date the expense occurred.
   final DateTime date;
+
+  /// Latitude of the transaction location.
+  final double? latitude;
+
+  /// Longitude of the transaction location.
+  final double? longitude;
 }
