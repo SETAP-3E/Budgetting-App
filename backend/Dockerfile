@@ -7,7 +7,9 @@ COPY pubspec.yaml ./
 RUN dart pub get
 
 COPY . .
-RUN dart compile exe bin/server.dart -o bin/server
+# Compile the generated Dart Frog server entrypoint
+# The Dart Frog CLI generates `.dart_frog/server.dart` as the app entry
+RUN dart compile exe .dart_frog/server.dart -o bin/server
 
 # Stage 2: Runtime (minimal image)
 FROM debian:bookworm-slim
