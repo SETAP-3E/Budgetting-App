@@ -68,6 +68,18 @@ Future<Response> _createTransaction(RequestContext context) async {
     );
   }
 
+  final latitude = (body['latitude'] as num?)?.toDouble();
+  final longitude = (body['longitude'] as num?)?.toDouble();
+
+  if ((latitude == null) != (longitude == null)) {
+    return Response.json(
+      statusCode: 400,
+      body: {
+        'error': 'latitude and longitude must both be provided or both omitted',
+      },
+    );
+  }
+
   final connection = await context.read<Future<Connection>>();
   final categoryRepo = CategoryRepository(connection);
   final transactionRepo = TransactionRepository(connection);
@@ -97,6 +109,8 @@ Future<Response> _createTransaction(RequestContext context) async {
     amount: amount,
     transactionDate: transactionDate,
     description: body['description'] as String?,
+    latitude: latitude,
+    longitude: longitude,
   );
 
   return Response.json(statusCode: 201, body: transaction.toJson());

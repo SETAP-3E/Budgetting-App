@@ -1,7 +1,7 @@
 import 'package:budgetting_frontend/features/transactions/domain/models/transaction_model.dart';
 import 'package:dio/dio.dart';
 
-/// HTTP client for the transactions and categories API endpoints.
+/// HTTP client for the transactions, categories, and places API endpoints.
 ///
 /// Uses hardcoded dev UUIDs until real authentication is implemented.
 class TransactionsApiClient {
@@ -46,6 +46,8 @@ class TransactionsApiClient {
         categoryName: json['category_name'] as String,
         location: json['description'] as String?,
         date: DateTime.parse(json['transaction_date'] as String),
+        latitude: (json['latitude'] as num?)?.toDouble(),
+        longitude: (json['longitude'] as num?)?.toDouble(),
       );
     }).toList();
   }
@@ -54,12 +56,15 @@ class TransactionsApiClient {
   ///
   /// Provide either [categoryId] (for an existing category) or
   /// [newCategoryName] (to create a custom one on the fly).
+  /// If [latitude] and [longitude] are provided they must both be non-null.
   Future<void> createTransaction({
     required double amount,
     required String transactionDate,
     String? categoryId,
     String? newCategoryName,
     String? description,
+    double? latitude,
+    double? longitude,
   }) async {
     await _dio.post<void>(
       '/transactions',
@@ -72,7 +77,30 @@ class TransactionsApiClient {
         if (description != null && description.isNotEmpty)
           'description': description,
         'transaction_date': transactionDate,
+        if (latitude != null && longitude != null) 'latitude': latitude,
+        if (latitude != null && longitude != null) 'longitude': longitude,
       },
     );
+  }
+
+  /// Returns place autocomplete suggestions from the backend Places proxy.
+  ///
+  /// Each item has `place_id` and `description` keys.
+  Future<List<Map<String, dynamic>>> getPlaceSuggestions(String query) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/places/autocomplete',
+      queryParameters: {'q': query},
+    );
+    return ((response.data?['predictions'] as List<dynamic>?) ?? [])
+        .cast<Map<String, dynamic>>();
+  }
+
+  /// Returns the name, latitude, and longitude for a Google place ID.
+  Future<Map<String, dynamic>> getPlaceDetails(String placeId) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/places/details',
+      queryParameters: {'place_id': placeId},
+    );
+    return response.data ?? {};
   }
 }

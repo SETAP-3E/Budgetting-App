@@ -15,7 +15,7 @@ class TransactionRepository {
       Sql.named(
         'SELECT t.id, t.user_id, t.account_id, t.category_id, '
         '  c.name AS category_name, t.amount, t.description, '
-        '  t.transaction_date '
+        '  t.transaction_date, t.latitude, t.longitude '
         'FROM transactions t '
         'JOIN categories c ON c.id = t.category_id '
         'WHERE t.user_id = @userId '
@@ -34,17 +34,19 @@ class TransactionRepository {
     required double amount,
     required String transactionDate,
     String? description,
+    double? latitude,
+    double? longitude,
   }) async {
     final result = await connection.execute(
       Sql.named(
         'INSERT INTO transactions '
         '  (user_id, account_id, category_id, amount, description, '
-        '   transaction_date) '
+        '   transaction_date, latitude, longitude) '
         'VALUES '
         '  (@userId, @accountId, @categoryId, @amount, @description, '
-        '   @transactionDate) '
+        '   @transactionDate, @latitude, @longitude) '
         'RETURNING id, user_id, account_id, category_id, amount, '
-        '  description, transaction_date',
+        '  description, transaction_date, latitude, longitude',
       ),
       parameters: {
         'userId': userId,
@@ -53,6 +55,8 @@ class TransactionRepository {
         'amount': amount,
         'description': description,
         'transactionDate': transactionDate,
+        'latitude': latitude,
+        'longitude': longitude,
       },
     );
 
@@ -62,7 +66,7 @@ class TransactionRepository {
       Sql.named(
         'SELECT t.id, t.user_id, t.account_id, t.category_id, '
         '  c.name AS category_name, t.amount, t.description, '
-        '  t.transaction_date '
+        '  t.transaction_date, t.latitude, t.longitude '
         'FROM transactions t '
         'JOIN categories c ON c.id = t.category_id '
         'WHERE t.id = @id',
