@@ -9,7 +9,7 @@ class AppFooter extends StatelessWidget {
   /// Index of the currently active tab (0 = Dashboard).
   final int activeIndex;
 
-  static const _routes = ['/', '/accounts', '/budgets', '/transactions'];
+  static const _routes = ['/', '/accounts', '/budgets', '/transactions', '/reports'];
 
   void _onTap(BuildContext context, int index) {
     if (index == activeIndex) return;

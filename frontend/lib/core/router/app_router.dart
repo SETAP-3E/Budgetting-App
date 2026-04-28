@@ -1,6 +1,7 @@
 import 'package:budgetting_frontend/features/accounts/presentation/screens/accounts_screen.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/screens/budgets_screen.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:budgetting_frontend/features/reports/presentation/screens/spending_map_screen.dart';
 import 'package:budgetting_frontend/features/transactions/presentation/screens/transactions_screen.dart';
 import 'package:go_router/go_router.dart';
 
@@ -30,6 +31,12 @@ final appRouter = GoRouter(
       path: '/budgets',
       name: 'budgets',
       builder: (context, state) => const BudgetsScreen(),
+    ),
+    // Reports / spending map route
+    GoRoute(
+      path: '/reports',
+      name: 'reports',
+      builder: (context, state) => const SpendingMapScreen(),
     ),
   ],
 );
