@@ -12,6 +12,8 @@ class TransactionModel {
     required this.amount,
     required this.transactionDate,
     this.description,
+    this.latitude,
+    this.longitude,
   });
 
   /// Creates a [TransactionModel] from a postgres result row.
@@ -30,6 +32,12 @@ class TransactionModel {
       transactionDate: (map['transaction_date'] as DateTime)
           .toIso8601String()
           .substring(0, 10),
+      latitude: map['latitude'] != null
+          ? double.parse(map['latitude'].toString())
+          : null,
+      longitude: map['longitude'] != null
+          ? double.parse(map['longitude'].toString())
+          : null,
     );
   }
 
@@ -57,6 +65,12 @@ class TransactionModel {
   /// Date of the expense in ISO-8601 format (yyyy-MM-dd).
   final String transactionDate;
 
+  /// Latitude of the transaction location (from Google Places).
+  final double? latitude;
+
+  /// Longitude of the transaction location (from Google Places).
+  final double? longitude;
+
   /// Serialises to a JSON-compatible map.
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -67,5 +81,7 @@ class TransactionModel {
         'amount': amount,
         'description': description,
         'transaction_date': transactionDate,
+        'latitude': latitude,
+        'longitude': longitude,
       };
 }

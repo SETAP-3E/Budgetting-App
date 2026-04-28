@@ -9,6 +9,8 @@ import 'package:dart_frog/dart_frog.dart';
 import '../routes/users/users.dart' as users_users;
 import '../routes/transactions/index.dart' as transactions_index;
 import '../routes/categories/index.dart' as categories_index;
+import '../routes/places/autocomplete.dart' as places_autocomplete;
+import '../routes/places/details.dart' as places_details;
 
 import '../routes/_middleware.dart' as middleware;
 
@@ -28,7 +30,8 @@ Handler buildRootHandler() {
   final router = Router()
     ..mount('/users', (context) => buildUsersHandler()(context))
     ..mount('/transactions', (context) => buildTransactionsHandler()(context))
-    ..mount('/categories', (context) => buildCategoriesHandler()(context));
+    ..mount('/categories', (context) => buildCategoriesHandler()(context))
+    ..mount('/places', (context) => buildPlacesHandler()(context));
   return pipeline.addHandler(router);
 }
 
@@ -53,3 +56,10 @@ Handler buildCategoriesHandler() {
   return pipeline.addHandler(router);
 }
 
+Handler buildPlacesHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/autocomplete', (context) => places_autocomplete.onRequest(context))
+    ..all('/details', (context) => places_details.onRequest(context));
+  return pipeline.addHandler(router);
+}
