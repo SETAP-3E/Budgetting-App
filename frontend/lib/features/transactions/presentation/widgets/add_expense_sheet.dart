@@ -1,11 +1,13 @@
 import 'package:budgetting_frontend/features/transactions/data/datasources/transactions_api_client.dart';
+import 'package:budgetting_frontend/features/transactions/presentation/widgets/location_search_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Bottom sheet modal for logging a new expense.
 ///
 /// Loads categories from the API on open. Selecting "Other" reveals a
-/// free-text field for a custom category name. Saves via
+/// free-text field for a custom category name. Location is picked via
+/// [LocationSearchField] (Google Places Autocomplete). Saves via
 /// [TransactionsApiClient].
 class AddExpenseSheet extends StatefulWidget {
   /// Create an [AddExpenseSheet].
@@ -18,7 +20,6 @@ class AddExpenseSheet extends StatefulWidget {
 class _AddExpenseSheetState extends State<AddExpenseSheet> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
-  final _locationController = TextEditingController();
   final _customCategoryController = TextEditingController();
 
   final _apiClient = TransactionsApiClient();
@@ -30,6 +31,11 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   // Selected category map from API: {id, name, ...} or null for 'Other'.
   Map<String, dynamic>? _selectedCategory;
   static const String _otherId = '__other__';
+
+  // Selected place from Places Autocomplete.
+  String? _selectedPlaceName;
+  double? _selectedLat;
+  double? _selectedLng;
 
   bool get _isOtherSelected => _selectedCategory?['id'] == _otherId;
 
@@ -61,7 +67,6 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   @override
   void dispose() {
     _amountController.dispose();
-    _locationController.dispose();
     _customCategoryController.dispose();
     super.dispose();
   }
@@ -70,7 +75,6 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
     if (!_formKey.currentState!.validate()) return;
 
     final amount = double.parse(_amountController.text.trim());
-    final location = _locationController.text.trim();
     final today = DateTime.now();
     final dateStr =
         '${today.year}-${today.month.toString().padLeft(2, '0')}'
@@ -85,7 +89,9 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
             : _selectedCategory!['id'] as String,
         newCategoryName:
             _isOtherSelected ? _customCategoryController.text.trim() : null,
-        description: location.isEmpty ? null : location,
+        description: _selectedPlaceName,
+        latitude: _selectedLat,
+        longitude: _selectedLng,
       );
 
       if (mounted) {
@@ -152,16 +158,22 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
               },
             ),
             const SizedBox(height: 16),
-            // Location field (optional)
-            TextFormField(
-              controller: _locationController,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Location (optional)',
-                hintText: 'e.g. Tesco, High Street',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on_outlined),
-              ),
+            // Location search field (Places Autocomplete)
+            LocationSearchField(
+              onPlaceSelected: (name, lat, lng) {
+                setState(() {
+                  _selectedPlaceName = name;
+                  _selectedLat = lat;
+                  _selectedLng = lng;
+                });
+              },
+              onCleared: () {
+                setState(() {
+                  _selectedPlaceName = null;
+                  _selectedLat = null;
+                  _selectedLng = null;
+                });
+              },
             ),
             const SizedBox(height: 16),
             // Category dropdown
