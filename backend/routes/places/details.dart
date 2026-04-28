@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:budgetting_backend/config.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:http/http.dart' as http;
 
@@ -21,7 +22,7 @@ Future<Response> onRequest(RequestContext context) async {
     );
   }
 
-  final apiKey = Platform.environment['GOOGLE_PLACES_API_KEY'];
+  final apiKey = Config.placesApiKey;
   if (apiKey == null || apiKey.isEmpty) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
