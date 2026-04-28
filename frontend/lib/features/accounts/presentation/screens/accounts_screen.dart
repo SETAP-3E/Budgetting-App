@@ -6,7 +6,6 @@ import 'package:budgetting_frontend/features/accounts/presentation/widgets/accou
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 /// Accounts screen showing account balances and quick actions.
@@ -140,26 +139,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
           );
         },
       ),
-      bottomNavigationBar: AppFooter(
-        activeIndex: 1,
-        onNavigation: (index) => _onFooterNavigation(context, index),
-      ),
+      bottomNavigationBar: const AppFooter(activeIndex: 1),
     );
-  }
-
-  void _onFooterNavigation(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        context.goNamed('dashboard');
-        return;
-      case 1:
-        return;
-      default:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('This section is coming soon')),
-        );
-        return;
-    }
   }
 
   Widget _buildAccountSection(

@@ -7,7 +7,6 @@ import 'package:budgetting_frontend/features/dashboard/presentation/widgets/spen
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/top_category_alert.dart';
 import 'package:budgetting_frontend/features/transactions/presentation/widgets/add_expense_sheet.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 /// Dashboard screen displaying spending summary, categories, and charts.
 ///
@@ -152,32 +151,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: AppFooter(
-        activeIndex: 0,
-        onNavigation: (index) => _onFooterNavigation(context, index),
-      ),
+      bottomNavigationBar: const AppFooter(),
     );
-  }
-
-  void _onFooterNavigation(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        return;
-      case 1:
-        context.go('/accounts');
-        return;
-      case 2:
-        context.go('/budgets');
-        return;
-      case 3:
-        context.go('/transactions');
-        return;
-      default:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('This section is coming soon')),
-        );
-        return;
-    }
   }
 
   Map<String, dynamic> _getDashboardData() {

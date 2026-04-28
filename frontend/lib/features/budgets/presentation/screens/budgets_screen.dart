@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../../../dashboard/presentation/widgets/app_footer.dart';
 import '../../../dashboard/presentation/widgets/app_header.dart';
 import '../widgets/budget_summary_card.dart';
@@ -139,21 +138,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: AppFooter(
-        activeIndex: 2,
-        onNavigation: (index) {
-          switch (index) {
-            case 0: // Dashboard
-              context.go('/');
-              break;
-            default:
-              // TODO: Implement navigation for other screens
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Navigation to screen $index not implemented yet')),
-              );
-          }
-        },
-      ),
+      bottomNavigationBar: const AppFooter(activeIndex: 2),
     );
   }
 

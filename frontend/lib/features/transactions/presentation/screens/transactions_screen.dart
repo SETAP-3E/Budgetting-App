@@ -5,7 +5,6 @@ import 'package:budgetting_frontend/features/transactions/data/datasources/trans
 import 'package:budgetting_frontend/features/transactions/domain/models/transaction_model.dart';
 import 'package:budgetting_frontend/features/transactions/presentation/widgets/add_expense_sheet.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 /// Screen displaying the list of all transactions for the current user.
 class TransactionsScreen extends StatefulWidget {
@@ -79,12 +78,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         tooltip: 'Add Expense',
         child: const Icon(Icons.add),
       ),
-      bottomNavigationBar: AppFooter(
-        activeIndex: 3,
-        onNavigation: (index) {
-          if (index == 0) context.go('/');
-        },
-      ),
+      bottomNavigationBar: const AppFooter(activeIndex: 3),
     );
   }
 

@@ -1,27 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-/// Footer navigation widget with 5 bottom navigation buttons.
-///
-/// Displays: Dashboard, Accounts, Budgets, Transactions, Reports
+/// Shared bottom navigation bar used across all screens.
 class AppFooter extends StatelessWidget {
-  /// Create a [AppFooter].
-  const AppFooter({
-    this.activeIndex = 0,
-    this.onNavigation,
-    super.key,
-  });
+  /// Creates an [AppFooter] with the given [activeIndex] highlighted.
+  const AppFooter({this.activeIndex = 0, super.key});
 
-  /// Index of the active navigation item (0 = Dashboard).
+  /// Index of the currently active tab (0 = Dashboard).
   final int activeIndex;
 
-  /// Callback when a navigation item is tapped.
-  final Function(int)? onNavigation;
+  static const _routes = ['/', '/accounts', '/budgets', '/transactions'];
+
+  void _onTap(BuildContext context, int index) {
+    if (index == activeIndex) return;
+    if (index < _routes.length) {
+      context.go(_routes[index]);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reports coming soon')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
       currentIndex: activeIndex,
-      onTap: onNavigation,
+      onTap: (index) => _onTap(context, index),
       type: BottomNavigationBarType.fixed,
       items: const [
         BottomNavigationBarItem(
