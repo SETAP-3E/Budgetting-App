@@ -42,6 +42,7 @@ class TransactionsApiClient {
     return (response.data ?? []).cast<Map<String, dynamic>>().map((json) {
       return TransactionModel(
         id: json['id'] as String,
+        accountId: json['account_id'] as String,
         amount: (json['amount'] as num).toDouble(),
         categoryName: json['category_name'] as String,
         location: json['description'] as String?,
@@ -60,6 +61,7 @@ class TransactionsApiClient {
   Future<void> createTransaction({
     required double amount,
     required String transactionDate,
+    required String accountId,
     String? categoryId,
     String? newCategoryName,
     String? description,
@@ -70,7 +72,7 @@ class TransactionsApiClient {
       '/transactions',
       data: {
         'user_id': devUserId,
-        'account_id': devAccountId,
+        'account_id': accountId,
         if (categoryId != null) 'category_id': categoryId,
         if (newCategoryName != null) 'new_category_name': newCategoryName,
         'amount': amount,

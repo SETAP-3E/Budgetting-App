@@ -3,6 +3,7 @@ class TransactionModel {
   /// Create a [TransactionModel].
   const TransactionModel({
     required this.id,
+    required this.accountId,
     required this.amount,
     required this.categoryName,
     required this.date,
@@ -13,6 +14,9 @@ class TransactionModel {
 
   /// Unique identifier for this transaction.
   final String id;
+
+  /// ID of the account this transaction was paid from.
+  final String accountId;
 
   /// Amount spent in GBP (must be > 0).
   final double amount;
