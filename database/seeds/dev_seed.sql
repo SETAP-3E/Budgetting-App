@@ -20,11 +20,31 @@ VALUES (
     'Dev User'
 ) ON CONFLICT DO NOTHING;
 
--- Dev account for the dev user.
+-- Dev accounts for the dev user (IDs mirrored in MockAccountsDatasource).
 INSERT INTO accounts (id, user_id, name, currency)
-VALUES (
-    '00000000-0000-0000-0000-000000000002',
-    '00000000-0000-0000-0000-000000000001',
-    'Main Account',
-    'GBP'
-) ON CONFLICT DO NOTHING;
+VALUES
+    (
+        '00000000-0000-0000-0000-000000000002',
+        '00000000-0000-0000-0000-000000000001',
+        'Main Current Account',
+        'GBP'
+    ),
+    (
+        '00000000-0000-0000-0000-000000000003',
+        '00000000-0000-0000-0000-000000000001',
+        'Savings Pot',
+        'GBP'
+    ),
+    (
+        '00000000-0000-0000-0000-000000000004',
+        '00000000-0000-0000-0000-000000000001',
+        'Joint Bills Account',
+        'GBP'
+    ),
+    (
+        '00000000-0000-0000-0000-000000000005',
+        '00000000-0000-0000-0000-000000000001',
+        'Trip Savings',
+        'GBP'
+    )
+ON CONFLICT DO NOTHING;

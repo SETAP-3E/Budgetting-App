@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 
 /// Mock datasource for the accounts feature.
 class MockAccountsDatasource {
+  // IDs are fixed UUIDs matching database/seeds/dev_seed.sql.
   static final List<AccountModel> _accounts = [
     const AccountModel(
-      id: 'acc_current_main',
+      id: '00000000-0000-0000-0000-000000000002',
       name: 'Main Current Account',
       type: AccountType.current,
       balance: 1842.76,
@@ -14,7 +15,7 @@ class MockAccountsDatasource {
       accentColor: Color(0xFF4DB6AC),
     ),
     const AccountModel(
-      id: 'acc_savings_pot',
+      id: '00000000-0000-0000-0000-000000000003',
       name: 'Savings Pot',
       type: AccountType.savings,
       balance: 5200,
@@ -23,7 +24,7 @@ class MockAccountsDatasource {
       accentColor: Color(0xFF66BB6A),
     ),
     const AccountModel(
-      id: 'acc_joint_bills',
+      id: '00000000-0000-0000-0000-000000000004',
       name: 'Joint Bills Account',
       type: AccountType.joint,
       balance: 963.45,
@@ -32,7 +33,7 @@ class MockAccountsDatasource {
       accentColor: Color(0xFFFFC107),
     ),
     const AccountModel(
-      id: 'acc_trip_savings',
+      id: '00000000-0000-0000-0000-000000000005',
       name: 'Trip Savings',
       type: AccountType.savings,
       balance: 1375.20,
