@@ -23,7 +23,7 @@ void main() {
         ),
       );
 
-      expect(find.text('£2456.32'), findsOneWidget);
+      expect(find.text('£2,456.32'), findsOneWidget);
       expect(find.text('March 2026'), findsOneWidget);
     });
 
@@ -46,7 +46,7 @@ void main() {
         ),
       );
 
-      expect(find.text('£1234.50'), findsOneWidget);
+      expect(find.text('£1,234.50'), findsOneWidget);
     });
 
     testWidgets('displays zero spending correctly formatted', (
@@ -283,8 +283,8 @@ void main() {
         ),
       );
 
-      expect(find.text('£9999.99'), findsOneWidget);
-      final textWidget = find.text('£9999.99');
+      expect(find.text('£9,999.99'), findsOneWidget);
+      final textWidget = find.text('£9,999.99');
       final textStyle = tester.widget<Text>(textWidget).style;
       expect(textStyle?.fontSize, 57.0);
     });
