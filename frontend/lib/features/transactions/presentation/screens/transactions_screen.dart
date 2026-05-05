@@ -1,4 +1,5 @@
 import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
+import 'package:budgetting_frontend/features/accounts/data/mock_accounts_datasource.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
 import 'package:budgetting_frontend/features/transactions/data/datasources/transactions_api_client.dart';
@@ -387,6 +388,19 @@ class _TransactionTile extends StatelessWidget {
     final date = transaction.date;
     final dateStr = '${date.day} ${_monthName(date.month)} ${date.year}';
 
+    final accounts = MockAccountsDatasource.getAccounts();
+    final matchedAccount = accounts.where(
+      (a) => a.id == transaction.accountId,
+    );
+    final accountName =
+        matchedAccount.isNotEmpty ? matchedAccount.first.name : null;
+
+    final subtitleParts = [
+      if (transaction.location != null) transaction.location!,
+      if (accountName != null) accountName,
+      dateStr,
+    ];
+
     return ListTile(
       leading: CircleAvatar(
         backgroundColor:
@@ -400,11 +414,7 @@ class _TransactionTile extends StatelessWidget {
         transaction.categoryName,
         style: const TextStyle(fontWeight: FontWeight.w500),
       ),
-      subtitle: Text(
-        transaction.location != null
-            ? '${transaction.location}  ·  $dateStr'
-            : dateStr,
-      ),
+      subtitle: Text(subtitleParts.join('  ·  ')),
       trailing: Text(
         formatCurrency(transaction.amount),
         style: TextStyle(
