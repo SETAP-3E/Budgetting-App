@@ -166,6 +166,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
             const SizedBox(height: 16),
             // Account selector
             DropdownButtonFormField<String>(
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               decoration: const InputDecoration(
                 labelText: 'Account',
                 border: OutlineInputBorder(),
