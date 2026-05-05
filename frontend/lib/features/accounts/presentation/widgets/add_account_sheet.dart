@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -47,7 +49,7 @@ class _AddAccountSheetState extends State<AddAccountSheet> {
     if (!_formKey.currentState!.validate()) return;
 
     final account = AccountModel(
-      id: 'acc_${DateTime.now().millisecondsSinceEpoch}',
+      id: _generateUuid(),
       name: _nameController.text.trim(),
       type: _selectedType!,
       balance: double.parse(_balanceController.text.trim()),
@@ -205,6 +207,20 @@ class _SheetHandle extends StatelessWidget {
       ),
     );
   }
+}
+
+String _generateUuid() {
+  final rng = Random.secure();
+  final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  String h(int b) => b.toRadixString(16).padLeft(2, '0');
+  return '${h(bytes[0])}${h(bytes[1])}${h(bytes[2])}${h(bytes[3])}'
+      '-${h(bytes[4])}${h(bytes[5])}'
+      '-${h(bytes[6])}${h(bytes[7])}'
+      '-${h(bytes[8])}${h(bytes[9])}'
+      '-${h(bytes[10])}${h(bytes[11])}${h(bytes[12])}'
+      '${h(bytes[13])}${h(bytes[14])}${h(bytes[15])}';
 }
 
 class _ColourPicker extends StatelessWidget {
