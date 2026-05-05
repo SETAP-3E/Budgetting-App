@@ -54,8 +54,7 @@ class MetricCard extends StatelessWidget {
             // Progress bar (if goal set)
             if (goalAmount != null) _buildGoalProgress(context),
             if (goalAmount != null) const SizedBox(height: 12),
-            // Always show Add Spending button
-            _buildAddSpendingButton(context),
+            if (goalAmount == null) _buildAddSpendingButton(context),
           ],
         ),
       ),
