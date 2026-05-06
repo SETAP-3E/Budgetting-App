@@ -43,6 +43,7 @@ class TransactionsApiClient {
       return TransactionModel(
         id: json['id'] as String,
         accountId: json['account_id'] as String,
+        accountName: json['account_name'] as String?,
         amount: (json['amount'] as num).toDouble(),
         categoryName: json['category_name'] as String,
         location: json['description'] as String?,

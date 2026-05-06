@@ -7,6 +7,7 @@ class TransactionModel {
     required this.amount,
     required this.categoryName,
     required this.date,
+    this.accountName,
     this.location,
     this.latitude,
     this.longitude,
@@ -17,6 +18,9 @@ class TransactionModel {
 
   /// ID of the account this transaction was paid from.
   final String accountId;
+
+  /// Human-readable account name (from JOIN), null if account deleted.
+  final String? accountName;
 
   /// Amount spent in GBP (must be > 0).
   final double amount;
