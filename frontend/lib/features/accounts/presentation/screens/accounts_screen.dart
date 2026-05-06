@@ -45,7 +45,7 @@ class _AccountsView extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => const AddAccountSheet(),
+      builder: (_) => AddAccountSheet(),
     ).then((_) {
       if (context.mounted) {
         context

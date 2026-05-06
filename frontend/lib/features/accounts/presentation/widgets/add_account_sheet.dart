@@ -23,7 +23,7 @@ class AddAccountSheet extends StatefulWidget {
   /// Create an [AddAccountSheet].
   ///
   /// [apiClientOverride] is injected in tests to avoid real HTTP calls.
-  const AddAccountSheet({super.key, this.apiClientOverride});
+  AddAccountSheet({super.key, this.apiClientOverride});
 
   /// Replaces the default [AccountsApiClient] — used in tests only.
   final AccountsApiClient? apiClientOverride;
