@@ -21,30 +21,47 @@ VALUES (
 ) ON CONFLICT DO NOTHING;
 
 -- Dev accounts for the dev user (IDs mirrored in MockAccountsDatasource).
-INSERT INTO accounts (id, user_id, name, currency)
+-- accent_color values are Flutter ARGB integers (Color.toARGB32()).
+INSERT INTO accounts (id, user_id, name, currency, account_type, balance, monthly_budget, accent_color)
 VALUES
     (
         '00000000-0000-0000-0000-000000000002',
         '00000000-0000-0000-0000-000000000001',
         'Main Current Account',
-        'GBP'
+        'GBP',
+        'current',
+        1842.76,
+        1800.00,
+        4283283116   -- Color(0xFF4DB6AC) teal
     ),
     (
         '00000000-0000-0000-0000-000000000003',
         '00000000-0000-0000-0000-000000000001',
         'Savings Pot',
-        'GBP'
+        'GBP',
+        'savings',
+        5200.00,
+        600.00,
+        4284922730   -- Color(0xFF66BB6A) green
     ),
     (
         '00000000-0000-0000-0000-000000000004',
         '00000000-0000-0000-0000-000000000001',
         'Joint Bills Account',
-        'GBP'
+        'GBP',
+        'joint',
+        963.45,
+        1100.00,
+        4294951175   -- Color(0xFFFFC107) amber
     ),
     (
         '00000000-0000-0000-0000-000000000005',
         '00000000-0000-0000-0000-000000000001',
         'Trip Savings',
-        'GBP'
+        'GBP',
+        'savings',
+        1375.20,
+        300.00,
+        4294940672   -- Color(0xFFFF9800) orange
     )
 ON CONFLICT DO NOTHING;
