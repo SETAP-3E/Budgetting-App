@@ -1,10 +1,14 @@
 import 'package:bloc_test/bloc_test.dart';
+import 'package:budgetting_frontend/features/accounts/data/accounts_api_client.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts_bloc.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts_event.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockAccountsApiClient extends Mock implements AccountsApiClient {}
 
 AccountModel _acc({
   required String id,
@@ -24,18 +28,25 @@ AccountModel _acc({
     );
 
 void main() {
+  late MockAccountsApiClient apiClient;
+
   final current = _acc(id: 'current-1', type: AccountType.current);
   final savings = _acc(id: 'savings-1', type: AccountType.savings);
   final joint = _acc(id: 'joint-1', type: AccountType.joint);
-  final newAcc = _acc(id: 'new-1', type: AccountType.savings, balance: 500);
+
+  setUp(() {
+    apiClient = MockAccountsApiClient();
+  });
+
+  AccountsBloc build() => AccountsBloc(apiClient: apiClient);
 
   group('AccountsBloc', () {
     group('AccountsStarted', () {
       blocTest<AccountsBloc, AccountsState>(
         'emits [loading, success] with all accounts on successful load',
-        build: () => AccountsBloc(
-          getAccounts: () => [current, savings, joint],
-        ),
+        setUp: () => when(() => apiClient.getAccounts())
+            .thenAnswer((_) async => [current, savings, joint]),
+        build: build,
         act: (b) => b.add(const AccountsStarted()),
         expect: () => [
           const AccountsState(status: AccountsStatus.loading),
@@ -47,10 +58,10 @@ void main() {
       );
 
       blocTest<AccountsBloc, AccountsState>(
-        'emits [loading, failure] when use case throws',
-        build: () => AccountsBloc(
-          getAccounts: () => throw Exception('load error'),
-        ),
+        'emits [loading, failure] when API throws',
+        setUp: () => when(() => apiClient.getAccounts())
+            .thenThrow(Exception('network error')),
+        build: build,
         act: (b) => b.add(const AccountsStarted()),
         expect: () => [
           const AccountsState(status: AccountsStatus.loading),
@@ -61,10 +72,28 @@ void main() {
       );
     });
 
+    group('AccountsRefreshRequested', () {
+      blocTest<AccountsBloc, AccountsState>(
+        're-fetches and emits [loading, success]',
+        setUp: () => when(() => apiClient.getAccounts())
+            .thenAnswer((_) async => [current, savings, joint]),
+        build: build,
+        seed: () => const AccountsState(status: AccountsStatus.success),
+        act: (b) => b.add(const AccountsRefreshRequested()),
+        expect: () => [
+          isA<AccountsState>()
+              .having((s) => s.status, 'status', AccountsStatus.loading),
+          isA<AccountsState>()
+              .having((s) => s.status, 'status', AccountsStatus.success)
+              .having((s) => s.accounts.length, 'accounts', 3),
+        ],
+      );
+    });
+
     group('AccountsTypeFilterChanged', () {
       blocTest<AccountsBloc, AccountsState>(
         'filters visibleAccounts to current only',
-        build: () => AccountsBloc(getAccounts: () => [current, savings, joint]),
+        build: build,
         seed: () => AccountsState(
           status: AccountsStatus.success,
           accounts: [current, savings, joint],
@@ -85,7 +114,7 @@ void main() {
 
       blocTest<AccountsBloc, AccountsState>(
         'null type shows all accounts',
-        build: () => AccountsBloc(getAccounts: () => [current, savings, joint]),
+        build: build,
         seed: () => AccountsState(
           status: AccountsStatus.success,
           accounts: [current, savings, joint],
@@ -101,34 +130,6 @@ void main() {
                 'visibleAccounts',
                 3,
               ),
-        ],
-      );
-    });
-
-    group('AccountsAccountAdded', () {
-      blocTest<AccountsBloc, AccountsState>(
-        'adds account and re-emits success with extended list',
-        build: () {
-          var calls = 0;
-          return AccountsBloc(
-            getAccounts: () {
-              calls++;
-              return calls == 1
-                  ? [current, savings, joint]
-                  : [current, savings, joint, newAcc];
-            },
-          );
-        },
-        act: (b) => b
-          ..add(const AccountsStarted())
-          ..add(AccountsAccountAdded(newAcc)),
-        expect: () => [
-          const AccountsState(status: AccountsStatus.loading),
-          isA<AccountsState>()
-              .having((s) => s.accounts.length, 'accounts', 3),
-          isA<AccountsState>()
-              .having((s) => s.status, 'status', AccountsStatus.success)
-              .having((s) => s.accounts.length, 'accounts', 4),
         ],
       );
     });

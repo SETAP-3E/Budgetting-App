@@ -1,13 +1,30 @@
+import 'package:budgetting_frontend/features/accounts/data/accounts_api_client.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/widgets/add_account_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 
-Widget buildWidget({void Function(AccountModel)? onAccountAdded}) =>
-    MaterialApp(
+class MockAccountsApiClient extends Mock implements AccountsApiClient {}
+
+AccountModel _stubAccount({
+  String name = 'My Account',
+  AccountType type = AccountType.current,
+}) =>
+    AccountModel(
+      id: 'test-uuid',
+      name: name,
+      type: type,
+      balance: 500,
+      monthlyBudget: 300,
+      monthlySpent: 0,
+      accentColor: kAccountAccentColours.first,
+    );
+
+Widget buildWidget({MockAccountsApiClient? apiClient}) => MaterialApp(
       home: Scaffold(
         body: AddAccountSheet(
-          onAccountAdded: onAccountAdded ?? (_) {},
+          apiClientOverride: apiClient,
         ),
       ),
     );
@@ -43,6 +60,11 @@ Future<void> _fillForm(
 }
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(AccountType.current);
+    registerFallbackValue(const Color(0xFF000000));
+  });
+
   group('AddAccountSheet', () {
     testWidgets('renders Account Name field', (tester) async {
       await tester.pumpWidget(buildWidget());
@@ -102,10 +124,25 @@ void main() {
       expect(find.text('Required'), findsWidgets);
     });
 
-    testWidgets('calls onAccountAdded with correct model when form is valid',
+    testWidgets('posts to API and shows snackbar when form is valid',
         (tester) async {
-      AccountModel? received;
-      await tester.pumpWidget(buildWidget(onAccountAdded: (a) => received = a));
+      final mockClient = MockAccountsApiClient();
+      when(
+        () => mockClient.createAccount(
+          name: any(named: 'name'),
+          type: any(named: 'type'),
+          balance: any(named: 'balance'),
+          monthlyBudget: any(named: 'monthlyBudget'),
+          accentColor: any(named: 'accentColor'),
+        ),
+      ).thenAnswer(
+        (_) async => _stubAccount(
+          name: 'Holiday Fund',
+          type: AccountType.savings,
+        ),
+      );
+
+      await tester.pumpWidget(buildWidget(apiClient: mockClient));
 
       await _fillForm(
         tester,
@@ -115,25 +152,34 @@ void main() {
         type: AccountType.savings,
       );
       await tester.tap(find.text('Save Account'));
-      await tester.pump();
+      await tester.pump(); // start async save
+      await tester.pump(); // complete future
 
-      expect(received, isNotNull);
-      expect(received!.name, 'Holiday Fund');
-      expect(received!.type, AccountType.savings);
-      expect(received!.balance, 1000);
-      expect(received!.monthlyBudget, 200);
-      expect(received!.monthlySpent, 0);
+      verify(
+        () => mockClient.createAccount(
+          name: 'Holiday Fund',
+          type: AccountType.savings,
+          balance: 1000,
+          monthlyBudget: 200,
+          accentColor: any(named: 'accentColor'),
+        ),
+      ).called(1);
     });
 
-    testWidgets('does not call onAccountAdded when form is invalid',
-        (tester) async {
-      var called = false;
-      await tester.pumpWidget(
-        buildWidget(onAccountAdded: (_) => called = true),
-      );
+    testWidgets('does not call API when form is invalid', (tester) async {
+      final mockClient = MockAccountsApiClient();
+      await tester.pumpWidget(buildWidget(apiClient: mockClient));
       await tester.tap(find.text('Save Account'));
       await tester.pump();
-      expect(called, isFalse);
+      verifyNever(
+        () => mockClient.createAccount(
+          name: any(named: 'name'),
+          type: any(named: 'type'),
+          balance: any(named: 'balance'),
+          monthlyBudget: any(named: 'monthlyBudget'),
+          accentColor: any(named: 'accentColor'),
+        ),
+      );
     });
   });
 }
