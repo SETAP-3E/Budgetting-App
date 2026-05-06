@@ -11,6 +11,7 @@ class TransactionModel {
     required this.categoryName,
     required this.amount,
     required this.transactionDate,
+    this.accountName,
     this.description,
     this.latitude,
     this.longitude,
@@ -27,6 +28,7 @@ class TransactionModel {
       accountId: map['account_id'] as String,
       categoryId: map['category_id'] as String,
       categoryName: map['category_name'] as String,
+      accountName: map['account_name'] as String?,
       amount: double.parse(map['amount'].toString()),
       description: map['description'] as String?,
       transactionDate: (map['transaction_date'] as DateTime)
@@ -56,6 +58,9 @@ class TransactionModel {
   /// Resolved category name (from JOIN).
   final String categoryName;
 
+  /// Resolved account name (from LEFT JOIN), null if account deleted.
+  final String? accountName;
+
   /// Amount spent in GBP.
   final double amount;
 
@@ -78,6 +83,7 @@ class TransactionModel {
         'account_id': accountId,
         'category_id': categoryId,
         'category_name': categoryName,
+        'account_name': accountName,
         'amount': amount,
         'description': description,
         'transaction_date': transactionDate,

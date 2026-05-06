@@ -387,6 +387,12 @@ class _TransactionTile extends StatelessWidget {
     final date = transaction.date;
     final dateStr = '${date.day} ${_monthName(date.month)} ${date.year}';
 
+    final subtitleParts = [
+      if (transaction.location != null) transaction.location!,
+      if (transaction.accountName != null) transaction.accountName!,
+      dateStr,
+    ];
+
     return ListTile(
       leading: CircleAvatar(
         backgroundColor:
@@ -400,11 +406,7 @@ class _TransactionTile extends StatelessWidget {
         transaction.categoryName,
         style: const TextStyle(fontWeight: FontWeight.w500),
       ),
-      subtitle: Text(
-        transaction.location != null
-            ? '${transaction.location}  ·  $dateStr'
-            : dateStr,
-      ),
+      subtitle: Text(subtitleParts.join('  ·  ')),
       trailing: Text(
         formatCurrency(transaction.amount),
         style: TextStyle(

@@ -1,3 +1,5 @@
+import 'package:budgetting_frontend/features/accounts/data/mock_accounts_datasource.dart';
+import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
 import 'package:budgetting_frontend/features/transactions/data/datasources/transactions_api_client.dart';
 import 'package:budgetting_frontend/features/transactions/presentation/widgets/location_search_field.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +25,9 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   final _customCategoryController = TextEditingController();
 
   final _apiClient = TransactionsApiClient();
+
+  final List<AccountModel> _accounts = MockAccountsDatasource.getAccounts();
+  late AccountModel? _selectedAccount;
 
   List<Map<String, dynamic>> _categories = [];
   bool _loadingCategories = true;
@@ -84,6 +89,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
       await _apiClient.createTransaction(
         amount: amount,
         transactionDate: dateStr,
+        accountId: _selectedAccount!.id,
         categoryId: _isOtherSelected
             ? null
             : _selectedCategory!['id'] as String,
@@ -156,6 +162,36 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                 }
                 return null;
               },
+            ),
+            const SizedBox(height: 16),
+            // Account selector
+            DropdownButtonFormField<String>(
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              decoration: const InputDecoration(
+                labelText: 'Account',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.account_balance_wallet_outlined),
+              ),
+              items: _accounts
+                  .map(
+                    (acc) => DropdownMenuItem(
+                      value: acc.id,
+                      child: Row(
+                        children: [
+                          Icon(acc.type.icon, color: acc.accentColor, size: 18),
+                          const SizedBox(width: 8),
+                          Text(acc.name),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (id) => setState(
+                () => _selectedAccount =
+                    _accounts.firstWhere((a) => a.id == id),
+              ),
+              validator: (v) =>
+                  v == null ? 'Please select an account' : null,
             ),
             const SizedBox(height: 16),
             // Location search field (Places Autocomplete)

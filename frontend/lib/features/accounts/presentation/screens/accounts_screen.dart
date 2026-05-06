@@ -1,141 +1,155 @@
-import 'package:budgetting_frontend/features/accounts/data/mock_accounts_datasource.dart';
+import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
+import 'package:budgetting_frontend/features/accounts/data/accounts_api_client.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
+import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts_bloc.dart';
+import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts_event.dart';
+import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts_state.dart';
+import 'package:budgetting_frontend/features/accounts/presentation/screens/account_detail_screen.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/widgets/account_list_card.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/widgets/accounts_overview_card.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/widgets/accounts_quick_actions.dart';
+import 'package:budgetting_frontend/features/accounts/presentation/widgets/add_account_sheet.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Accounts screen showing account balances and quick actions.
-class AccountsScreen extends StatefulWidget {
+class AccountsScreen extends StatelessWidget {
   /// Creates the accounts screen.
-  const AccountsScreen({super.key});
+  ///
+  /// [apiClientOverride] is injected in tests to avoid real HTTP calls.
+  const AccountsScreen({super.key, this.apiClientOverride});
 
-  @override
-  State<AccountsScreen> createState() => _AccountsScreenState();
-}
-
-class _AccountsScreenState extends State<AccountsScreen> {
-  AccountType? _selectedType;
-
-  List<AccountModel> get _allAccounts => MockAccountsDatasource.getAccounts();
-
-  List<AccountModel> get _visibleAccounts {
-    if (_selectedType == null) {
-      return _allAccounts;
-    }
-
-    return _allAccounts.where((a) => a.type == _selectedType).toList();
-  }
-
-  static final NumberFormat _currencyFormatter = NumberFormat.currency(
-    locale: 'en_GB',
-    symbol: '£',
-    decimalDigits: 2,
-  );
-
-  double get _totalBalance =>
-      _allAccounts.fold(0, (sum, account) => sum + account.balance);
-
-  int get _lowBalanceCount =>
-      _allAccounts.where((a) => a.balance < 1000).length;
+  /// Replaces the default [AccountsApiClient] — used in tests only.
+  final AccountsApiClient? apiClientOverride;
 
   @override
   Widget build(BuildContext context) {
-    final visibleAccounts = _visibleAccounts;
+    return BlocProvider(
+      create: (_) =>
+          AccountsBloc(apiClient: apiClientOverride ?? AccountsApiClient())
+            ..add(const AccountsStarted()),
+      child: const _AccountsView(),
+    );
+  }
+}
 
+class _AccountsView extends StatelessWidget {
+  const _AccountsView();
+
+  void _openAddAccountSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => AddAccountSheet(),
+    ).then((_) {
+      if (context.mounted) {
+        context
+            .read<AccountsBloc>()
+            .add(const AccountsRefreshRequested());
+      }
+    });
+  }
+
+  void _openAccountDetail(BuildContext context, AccountModel account) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AccountDetailScreen(account: account),
+      ),
+    );
+  }
+
+  void _showComingSoon(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppHeader(
         title: 'Accounts',
-        onMenuPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Menu opened')),
-          );
-        },
+        onMenuPressed: () => _showComingSoon(context, 'Menu opened'),
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 980;
+      body: BlocBuilder<AccountsBloc, AccountsState>(
+        builder: (context, state) {
+          if (state.status == AccountsStatus.loading ||
+              state.status == AccountsStatus.initial) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          if (isWide) {
-            return Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        AccountsOverviewCard(
-                          totalBalance: _totalBalance,
-                          activeAccounts: _allAccounts.length,
-                          lowBalanceCount: _lowBalanceCount,
-                          currencyText: _currencyFormatter.format(
-                            _totalBalance,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        AccountsQuickActions(
-                          onAddAccount: () => _showComingSoon(
-                            context,
-                            'Add account flow coming soon',
-                          ),
-                          onTransfer: () => _showComingSoon(
-                            context,
-                            'Transfer flow coming soon',
-                          ),
-                          onExport: () => _showComingSoon(
-                            context,
-                            'Export flow coming soon',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 2,
-                    child: _buildAccountSection(
-                      context,
-                      visibleAccounts,
-                    ),
-                  ),
-                ],
-              ),
+          if (state.status == AccountsStatus.failure) {
+            return Center(
+              child: Text(state.errorMessage ?? 'Something went wrong'),
             );
           }
 
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AccountsOverviewCard(
-                    totalBalance: _totalBalance,
-                    activeAccounts: _allAccounts.length,
-                    lowBalanceCount: _lowBalanceCount,
-                    currencyText: _currencyFormatter.format(_totalBalance),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 980;
+              final overviewCard = AccountsOverviewCard(
+                totalBalance: state.accounts
+                    .fold(0, (sum, a) => sum + a.balance),
+                activeAccounts: state.accounts.length,
+                lowBalanceCount:
+                    state.accounts.where((a) => a.balance < 1000).length,
+                currencyText: formatCurrency(
+                  state.accounts.fold(0, (sum, a) => sum + a.balance),
+                ),
+              );
+              final quickActions = AccountsQuickActions(
+                onAddAccount: () => _openAddAccountSheet(context),
+                onTransfer: () =>
+                    _showComingSoon(context, 'Transfer flow coming soon'),
+                onExport: () =>
+                    _showComingSoon(context, 'Export flow coming soon'),
+              );
+              final accountSection =
+                  _buildAccountSection(context, state);
+
+              if (isWide) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: [
+                            overviewCard,
+                            const SizedBox(height: 12),
+                            quickActions,
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(flex: 2, child: accountSection),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  AccountsQuickActions(
-                    onAddAccount: () =>
-                        _showComingSoon(
-                      context,
-                      'Add account flow coming soon',
-                    ),
-                    onTransfer: () =>
-                        _showComingSoon(context, 'Transfer flow coming soon'),
-                    onExport: () =>
-                        _showComingSoon(context, 'Export flow coming soon'),
+                );
+              }
+
+              return SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      overviewCard,
+                      const SizedBox(height: 12),
+                      quickActions,
+                      const SizedBox(height: 16),
+                      accountSection,
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  _buildAccountSection(context, visibleAccounts),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           );
         },
       ),
@@ -145,7 +159,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
   Widget _buildAccountSection(
     BuildContext context,
-    List<AccountModel> visibleAccounts,
+    AccountsState state,
   ) {
     final theme = Theme.of(context);
 
@@ -158,10 +172,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
           scrollDirection: Axis.horizontal,
           child: SegmentedButton<AccountType?>(
             segments: const [
-              ButtonSegment<AccountType?>(
-                value: null,
-                label: Text('All'),
-              ),
+              ButtonSegment<AccountType?>(value: null, label: Text('All')),
               ButtonSegment<AccountType?>(
                 value: AccountType.current,
                 label: Text('Current'),
@@ -175,37 +186,26 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 label: Text('Joint'),
               ),
             ],
-            selected: {_selectedType},
-            onSelectionChanged: (selection) {
-              setState(() {
-                _selectedType = selection.first;
-              });
-            },
+            selected: {state.selectedType},
+            onSelectionChanged: (selection) => context
+                .read<AccountsBloc>()
+                .add(AccountsTypeFilterChanged(selection.first)),
           ),
         ),
         const SizedBox(height: 12),
-        ...visibleAccounts.map(
+        ...state.visibleAccounts.map(
           (account) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: AccountListCard(
               account: account,
-              balanceText: _currencyFormatter.format(account.balance),
-                remainingText: 'Remaining '
-                  '${_currencyFormatter.format(account.remainingBudget)}',
-              onTap: () => _showComingSoon(
-                context,
-                'Open ${account.name} details (coming soon)',
-              ),
+              balanceText: formatCurrency(account.balance),
+              remainingText:
+                  'Remaining ${formatCurrency(account.remainingBudget)}',
+              onTap: () => _openAccountDetail(context, account),
             ),
           ),
         ),
       ],
-    );
-  }
-
-  void _showComingSoon(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
     );
   }
 }
