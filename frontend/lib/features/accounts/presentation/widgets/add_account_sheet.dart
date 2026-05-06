@@ -1,5 +1,4 @@
-import 'dart:math';
-
+import 'package:budgetting_frontend/features/accounts/data/accounts_api_client.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,12 +16,17 @@ const List<Color> kAccountAccentColours = [
 ];
 
 /// Bottom sheet form for adding a new account.
+///
+/// Posts directly to the backend via [AccountsApiClient] and pops on success.
+/// The parent screen should refresh the accounts list after the sheet closes.
 class AddAccountSheet extends StatefulWidget {
   /// Create an [AddAccountSheet].
-  const AddAccountSheet({required this.onAccountAdded, super.key});
+  ///
+  /// [apiClientOverride] is injected in tests to avoid real HTTP calls.
+  const AddAccountSheet({super.key, this.apiClientOverride});
 
-  /// Called with the completed [AccountModel] when the form is saved.
-  final void Function(AccountModel) onAccountAdded;
+  /// Replaces the default [AccountsApiClient] — used in tests only.
+  final AccountsApiClient? apiClientOverride;
 
   @override
   State<AddAccountSheet> createState() => _AddAccountSheetState();
@@ -34,8 +38,16 @@ class _AddAccountSheetState extends State<AddAccountSheet> {
   final _balanceController = TextEditingController();
   final _budgetController = TextEditingController();
 
+  late final AccountsApiClient _apiClient;
   AccountType? _selectedType;
   Color _selectedColour = kAccountAccentColours.first;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiClient = widget.apiClientOverride ?? AccountsApiClient();
+  }
 
   @override
   void dispose() {
@@ -45,21 +57,33 @@ class _AddAccountSheetState extends State<AddAccountSheet> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
 
-    final account = AccountModel(
-      id: _generateUuid(),
-      name: _nameController.text.trim(),
-      type: _selectedType!,
-      balance: double.parse(_balanceController.text.trim()),
-      monthlyBudget: double.parse(_budgetController.text.trim()),
-      monthlySpent: 0,
-      accentColor: _selectedColour,
-    );
+    try {
+      await _apiClient.createAccount(
+        name: _nameController.text.trim(),
+        type: _selectedType!,
+        balance: double.parse(_balanceController.text.trim()),
+        monthlyBudget: double.parse(_budgetController.text.trim()),
+        accentColor: _selectedColour,
+      );
 
-    widget.onAccountAdded(account);
-    Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Account saved')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save account')),
+        );
+      }
+    }
   }
 
   @override
@@ -170,8 +194,17 @@ class _AddAccountSheetState extends State<AddAccountSheet> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        onPressed: _save,
-                        child: const Text('Save Account'),
+                        onPressed: _saving ? null : _save,
+                        child: _saving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Save Account'),
                       ),
                     ),
                   ],
@@ -207,20 +240,6 @@ class _SheetHandle extends StatelessWidget {
       ),
     );
   }
-}
-
-String _generateUuid() {
-  final rng = Random.secure();
-  final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  String h(int b) => b.toRadixString(16).padLeft(2, '0');
-  return '${h(bytes[0])}${h(bytes[1])}${h(bytes[2])}${h(bytes[3])}'
-      '-${h(bytes[4])}${h(bytes[5])}'
-      '-${h(bytes[6])}${h(bytes[7])}'
-      '-${h(bytes[8])}${h(bytes[9])}'
-      '-${h(bytes[10])}${h(bytes[11])}${h(bytes[12])}'
-      '${h(bytes[13])}${h(bytes[14])}${h(bytes[15])}';
 }
 
 class _ColourPicker extends StatelessWidget {

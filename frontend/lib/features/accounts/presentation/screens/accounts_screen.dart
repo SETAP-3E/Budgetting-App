@@ -1,6 +1,6 @@
 import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
+import 'package:budgetting_frontend/features/accounts/data/accounts_api_client.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
-import 'package:budgetting_frontend/features/accounts/domain/usecases/get_accounts_use_case.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts_bloc.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts_event.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts_state.dart';
@@ -17,13 +17,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 /// Accounts screen showing account balances and quick actions.
 class AccountsScreen extends StatelessWidget {
   /// Creates the accounts screen.
-  const AccountsScreen({super.key});
+  ///
+  /// [apiClientOverride] is injected in tests to avoid real HTTP calls.
+  const AccountsScreen({super.key, this.apiClientOverride});
+
+  /// Replaces the default [AccountsApiClient] — used in tests only.
+  final AccountsApiClient? apiClientOverride;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => AccountsBloc(getAccounts: getAccountsUseCaseImpl)
-        ..add(const AccountsStarted()),
+      create: (_) =>
+          AccountsBloc(apiClient: apiClientOverride ?? AccountsApiClient())
+            ..add(const AccountsStarted()),
       child: const _AccountsView(),
     );
   }
@@ -33,18 +39,20 @@ class _AccountsView extends StatelessWidget {
   const _AccountsView();
 
   void _openAddAccountSheet(BuildContext context) {
-    final bloc = context.read<AccountsBloc>();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => AddAccountSheet(
-        onAccountAdded: (account) =>
-            bloc.add(AccountsAccountAdded(account)),
-      ),
-    );
+      builder: (_) => const AddAccountSheet(),
+    ).then((_) {
+      if (context.mounted) {
+        context
+            .read<AccountsBloc>()
+            .add(const AccountsRefreshRequested());
+      }
+    });
   }
 
   void _openAccountDetail(BuildContext context, AccountModel account) {

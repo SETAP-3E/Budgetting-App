@@ -46,6 +46,13 @@ class MockAccountsDatasource {
   /// Returns the current list of accounts.
   static List<AccountModel> getAccounts() => List.unmodifiable(_accounts);
 
+  /// Replaces the in-memory list with [accounts] fetched from the API.
+  static void syncAccounts(List<AccountModel> accounts) {
+    _accounts
+      ..clear()
+      ..addAll(accounts);
+  }
+
   /// Appends a new account to the in-memory list.
   static void addAccount(AccountModel account) => _accounts.add(account);
 }
