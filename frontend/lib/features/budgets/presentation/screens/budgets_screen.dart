@@ -256,11 +256,11 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                     segments: const [
                       ButtonSegment(
                         value: true,
-                        label: Text('Simple'),
+                        label: Text('Standard view'),
                       ),
                       ButtonSegment(
                         value: false,
-                        label: Text('Advanced'),
+                        label: Text('Edit budgets'),
                       ),
                     ],
                     selected: {_isSimpleView},
