@@ -26,10 +26,53 @@ class BudgetsScreen extends StatefulWidget {
 class _BudgetsScreenState extends State<BudgetsScreen> {
   String _selectedPeriod = 'this_month';
   bool _isSimpleView = true;
+  late Map<String, dynamic> _currentBudgetsData;
+  late List<Map<String, dynamic>> _currentBudgets;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBudgetsData(_selectedPeriod);
+  }
+
+  void _loadBudgetsData(String period) {
+    final data = MockBudgetsDataService.getMockData(period);
+    final budgets = (data['budgets'] as List)
+        .map((item) => Map<String, dynamic>.from(item as Map<String, dynamic>))
+        .toList();
+    final totalBudget = budgets.fold<double>(
+        0.0, (sum, budget) => sum + (budget['allocated'] as double));
+    final totalSpent = budgets.fold<double>(
+        0.0, (sum, budget) => sum + (budget['spent'] as double));
+    final alertBudget = _findHighestPercentageBudget(budgets);
+
+    _currentBudgetsData = {
+      ...data,
+      'budgets': budgets,
+      'totalBudget': totalBudget,
+      'totalSpent': totalSpent,
+      'remainingBudget': totalBudget - totalSpent,
+      'alertBudget': alertBudget,
+    };
+    _currentBudgets = budgets;
+  }
+
+  Map<String, dynamic> _findHighestPercentageBudget(
+      List<Map<String, dynamic>> budgets) {
+    if (budgets.isEmpty) {
+      return <String, dynamic>{};
+    }
+    return budgets.reduce((current, next) {
+      final currentPercentage = current['percentage'] as double;
+      final nextPercentage = next['percentage'] as double;
+      return nextPercentage > currentPercentage ? next : current;
+    });
+  }
 
   void _setPeriod(String period) {
     setState(() {
       _selectedPeriod = period;
+      _loadBudgetsData(period);
     });
     // TODO(1.18): Emit ChangePeriod event to BLoC
     // context.read<BudgetsBloc>().add(ChangePeriod(period: period));
@@ -41,6 +84,104 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     });
     // TODO(1.19): Emit ToggleViewMode event to BLoC
     // context.read<BudgetsBloc>().add(ToggleViewMode(isSimpleView: _isSimpleView));
+  }
+
+  void _showEditBudgetLimitSheet(Map<String, dynamic> budget) {
+    final controller = TextEditingController(
+      text: (budget['allocated'] as double).toStringAsFixed(2),
+    );
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Set limit for ${budget['name']}',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'New budget limit',
+                  prefixText: '£',
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  final input = controller.text.trim();
+                  final parsedLimit = double.tryParse(input);
+                  if (parsedLimit == null || parsedLimit <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter a valid budget limit.'),
+                      ),
+                    );
+                    return;
+                  }
+                  _updateBudgetLimit(budget['name'] as String, parsedLimit);
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Save limit'),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _updateBudgetLimit(String categoryName, double newLimit) {
+    final updatedBudgets = _currentBudgets
+        .map((budget) => Map<String, dynamic>.from(budget))
+        .toList();
+
+    for (final budget in updatedBudgets) {
+      if (budget['name'] == categoryName) {
+        final spent = budget['spent'] as double;
+        budget['allocated'] = newLimit;
+        budget['percentage'] = newLimit > 0 ? (spent / newLimit * 100) : 0.0;
+      }
+    }
+
+    final totalBudget = updatedBudgets.fold<double>(
+      0.0,
+      (sum, budget) => sum + (budget['allocated'] as double),
+    );
+
+    final totalSpent = updatedBudgets.fold<double>(
+      0.0,
+      (sum, budget) => sum + (budget['spent'] as double),
+    );
+
+    final alertBudget = _findHighestPercentageBudget(updatedBudgets);
+
+    setState(() {
+      _currentBudgets = updatedBudgets;
+      _currentBudgetsData['budgets'] = updatedBudgets;
+      _currentBudgetsData['totalBudget'] = totalBudget;
+      _currentBudgetsData['totalSpent'] = totalSpent;
+      _currentBudgetsData['remainingBudget'] = totalBudget - totalSpent;
+      _currentBudgetsData['alertBudget'] = alertBudget;
+    });
   }
 
   @override
@@ -62,10 +203,10 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               BudgetSummaryCard(
-                totalBudget: _getBudgetsData()['totalBudget'] as double,
-                totalSpent: _getBudgetsData()['totalSpent'] as double,
-                month: _getBudgetsData()['month'] as String,
-                year: _getBudgetsData()['year'] as int,
+                totalBudget: _currentBudgetsData['totalBudget'] as double,
+                totalSpent: _currentBudgetsData['totalSpent'] as double,
+                month: _currentBudgetsData['month'] as String,
+                year: _currentBudgetsData['year'] as int,
               ),
               const SizedBox(height: 16),
               _buildAlertBudget(),
@@ -142,13 +283,9 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     );
   }
 
-  Map<String, dynamic> _getBudgetsData() {
-    return MockBudgetsDataService.getMockData(_selectedPeriod);
-  }
-
   Widget _buildAlertBudget() {
-    final data = _getBudgetsData();
-    final alertBudget = data['alertBudget'] as Map<String, dynamic>;
+    final alertBudget =
+        _currentBudgetsData['alertBudget'] as Map<String, dynamic>;
 
     return BudgetAlertCard(
       categoryName: alertBudget['name'] as String,
@@ -160,9 +297,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   }
 
   Widget _buildBudgetList() {
-    final mockData = _getBudgetsData();
-    final budgets = mockData['budgets'] as List;
-
     if (_isSimpleView) {
       return const SizedBox.shrink();
     }
@@ -173,21 +307,21 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
         const Text('Budget Details',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        ...budgets.map((b) => BudgetCard(
+        ..._currentBudgets.map((b) => BudgetCard(
               rank: b['rank'] as int,
               categoryName: b['name'] as String,
               allocatedAmount: b['allocated'] as double,
               spentAmount: b['spent'] as double,
               percentage: b['percentage'] as double,
               categoryColour: b['colour'] as int,
+              onEditLimit: () => _showEditBudgetLimitSheet(b),
             )),
       ],
     );
   }
 
   Widget _buildBudgetChart() {
-    final mockData = _getBudgetsData();
-    final allBudgets = (mockData['budgets'] as List)
+    final allBudgets = _currentBudgets
         .map((b) => {
               'name': b['name'] as String,
               'allocated': b['allocated'] as double,
