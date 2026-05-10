@@ -1,11 +1,11 @@
-import 'dart:math';
-
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 /// Visual chart showing budget distribution and spending.
 ///
-/// Displays a pie chart in standard view and stacked horizontal bars in edit view.
-class BudgetChart extends StatelessWidget {
+/// Displays a donut pie chart in standard view and stacked horizontal bars
+/// in edit view. Tapping a pie segment shows a centre tooltip.
+class BudgetChart extends StatefulWidget {
   /// Create a [BudgetChart].
   const BudgetChart({
     required this.categories,
@@ -13,17 +13,81 @@ class BudgetChart extends StatelessWidget {
     super.key,
   });
 
-  /// List of budget categories with name, allocated, spent, and color.
+  /// List of budget categories with name, allocated, spent, and colour.
   final List<Map<String, dynamic>> categories;
 
-  /// Whether to show simplified chart (less detail).
+  /// Whether to show the pie chart (true) or stacked bars (false).
   final bool isSimpleView;
 
   @override
+  State<BudgetChart> createState() => _BudgetChartState();
+}
+
+class _BudgetChartState extends State<BudgetChart> {
+  int? _touchedIndex;
+
+  List<PieChartSectionData> _buildSections(double totalAllocated) {
+    return List.generate(widget.categories.length, (index) {
+      final c = widget.categories[index];
+      final allocated = c['allocated'] as double;
+      final isHovered = _touchedIndex == index;
+      final percentage =
+          totalAllocated > 0 ? allocated / totalAllocated * 100 : 0.0;
+
+      return PieChartSectionData(
+        color: Color(c['colour'] as int),
+        value: allocated,
+        radius: isHovered ? 85 : 75,
+        title: percentage >= 5 ? '${percentage.toStringAsFixed(1)}%' : '',
+        titleStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+        ),
+      );
+    });
+  }
+
+  Widget _buildCenterTooltip() {
+    final c = widget.categories[_touchedIndex!];
+    final name = c['name'] as String;
+    final spent = c['spent'] as double;
+    final allocated = c['allocated'] as double;
+    final usedPct = allocated > 0 ? spent / allocated * 100 : 0.0;
+    final isOverBudget = spent > allocated;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          name,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          textAlign: TextAlign.center,
+        ),
+        Text(
+          '£${spent.toStringAsFixed(2)} / £${allocated.toStringAsFixed(2)}',
+          style: const TextStyle(fontSize: 11),
+          textAlign: TextAlign.center,
+        ),
+        Text(
+          '${usedPct.toStringAsFixed(0)}% used',
+          style: TextStyle(
+            fontSize: 11,
+            color: isOverBudget
+                ? Colors.red
+                : Theme.of(context).colorScheme.primary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (isSimpleView) {
-      final totalAllocated = categories.fold<double>(
-        0.0,
+    if (widget.isSimpleView) {
+      final totalAllocated = widget.categories.fold<double>(
+        0,
         (sum, c) => sum + (c['allocated'] as double),
       );
 
@@ -44,13 +108,30 @@ class BudgetChart extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Center(
-                      child: SizedBox(
-                        width: 180,
-                        height: 180,
-                        child: CustomPaint(
-                          painter: _PieChartPainter(categories),
-                        ),
+                    child: SizedBox(
+                      height: 200,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          PieChart(
+                            PieChartData(
+                              centerSpaceRadius: 55,
+                              pieTouchData: PieTouchData(
+                                touchCallback: (event, response) {
+                                  setState(() {
+                                    _touchedIndex =
+                                        event.isInterestedForInteractions
+                                            ? response?.touchedSection
+                                                ?.touchedSectionIndex
+                                            : null;
+                                  });
+                                },
+                              ),
+                              sections: _buildSections(totalAllocated),
+                            ),
+                          ),
+                          if (_touchedIndex != null) _buildCenterTooltip(),
+                        ],
                       ),
                     ),
                   ),
@@ -58,7 +139,7 @@ class BudgetChart extends StatelessWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: categories.map((category) {
+                      children: widget.categories.map((category) {
                         final allocated = category['allocated'] as double;
                         final name = category['name'] as String;
                         final colour = Color(category['colour'] as int);
@@ -83,7 +164,8 @@ class BudgetChart extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   '$name • ${percentage.toStringAsFixed(1)}%',
-                                  style: Theme.of(context).textTheme.bodyMedium,
+                                  style:
+                                      Theme.of(context).textTheme.bodyMedium,
                                 ),
                               ),
                             ],
@@ -100,10 +182,11 @@ class BudgetChart extends StatelessWidget {
       );
     }
 
-    final maxAllocated = categories.fold<double>(
-        0,
-        (max, c) =>
-            c['allocated'] as double > max ? c['allocated'] as double : max);
+    final maxAllocated = widget.categories.fold<double>(
+      0,
+      (max, c) =>
+          c['allocated'] as double > max ? c['allocated'] as double : max,
+    );
 
     return Card(
       child: Padding(
@@ -118,7 +201,7 @@ class BudgetChart extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 16),
-            ...categories.map((category) {
+            ...widget.categories.map((category) {
               final allocated = category['allocated'] as double;
               final spent = category['spent'] as double;
               final name = category['name'] as String;
@@ -140,28 +223,26 @@ class BudgetChart extends StatelessWidget {
                           style: Theme.of(context).textTheme.labelMedium,
                         ),
                         Text(
-                          '£${spent.toStringAsFixed(2)} / £${allocated.toStringAsFixed(2)}',
+                          '£${spent.toStringAsFixed(2)} / '
+                          '£${allocated.toStringAsFixed(2)}',
                           style: Theme.of(context).textTheme.labelSmall,
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    // Stacked bar chart
                     Stack(
                       children: [
-                        // Allocated bar (background)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(4),
                           child: LinearProgressIndicator(
                             value: allocatedRatio,
                             minHeight: 8,
-                            backgroundColor: colour.withOpacity(0.2),
+                            backgroundColor: colour.withValues(alpha: 0.2),
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              colour.withOpacity(0.4),
+                              colour.withValues(alpha: 0.4),
                             ),
                           ),
                         ),
-                        // Spent bar (foreground)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(4),
                           child: LinearProgressIndicator(
@@ -178,55 +259,10 @@ class BudgetChart extends StatelessWidget {
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
     );
-  }
-}
-
-class _PieChartPainter extends CustomPainter {
-  _PieChartPainter(this.categories);
-
-  final List<Map<String, dynamic>> categories;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final total = categories.fold<double>(
-      0,
-      (sum, category) => sum + (category['allocated'] as double),
-    );
-    if (total <= 0) {
-      return;
-    }
-
-    final rect = Offset.zero & size;
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = min(size.width, size.height) / 2;
-    double startAngle = -pi / 2;
-
-    for (final category in categories) {
-      final allocated = category['allocated'] as double;
-      final sweepAngle = allocated / total * 2 * pi;
-      final paint = Paint()
-        ..color = Color(category['colour'] as int)
-        ..style = PaintingStyle.fill;
-
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle,
-        sweepAngle,
-        true,
-        paint,
-      );
-
-      startAngle += sweepAngle;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _PieChartPainter oldDelegate) {
-    return oldDelegate.categories != categories;
   }
 }

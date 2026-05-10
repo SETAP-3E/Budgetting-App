@@ -36,9 +36,7 @@ class BudgetAlertCard extends StatelessWidget {
     final displayPercentage = percentage.toInt().toDouble();
     
     return Card(
-      color: isOverBudget 
-          ? Colors.orange[10] 
-          : Colors.orange[10],
+      color: isOverBudget ? Colors.red[50] : Colors.orange[50],
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
