@@ -1,20 +1,13 @@
+import 'package:budgetting_frontend/features/budgets/data/budgets_api_client.dart';
+import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_alert_card.dart';
+import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_card.dart';
+import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_chart.dart';
+import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_summary_card.dart';
+import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
+import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
 import 'package:flutter/material.dart';
-import '../../../dashboard/presentation/widgets/app_footer.dart';
-import '../../../dashboard/presentation/widgets/app_header.dart';
-import '../widgets/budget_summary_card.dart';
-import '../widgets/budget_alert_card.dart';
-import '../widgets/budget_chart.dart';
-import '../widgets/budget_card.dart';
-import '../../data/datasources/mock_budgets_datasource.dart';
 
 /// Budgets screen displaying budget summary, categories, and charts.
-///
-/// Primary entry point showing:
-/// - Total budget (BudgetSummaryCard)
-/// - Alert budget near or over limit
-/// - Budget vs spending breakdown chart
-/// - Category list (Advanced view only)
-/// - Time period and view mode controls
 class BudgetsScreen extends StatefulWidget {
   /// Create a [BudgetsScreen].
   const BudgetsScreen({super.key});
@@ -24,66 +17,100 @@ class BudgetsScreen extends StatefulWidget {
 }
 
 class _BudgetsScreenState extends State<BudgetsScreen> {
+  final _apiClient = BudgetsApiClient();
+
   String _selectedPeriod = 'this_month';
   bool _isSimpleView = true;
-  late Map<String, dynamic> _currentBudgetsData;
-  late List<Map<String, dynamic>> _currentBudgets;
+  bool _isLoading = false;
+  String? _error;
+
+  double _totalBudget = 0;
+  double _totalSpent = 0;
+  String _periodMonth = '';
+  int _periodYear = DateTime.now().year;
+  List<Map<String, dynamic>> _currentBudgets = [];
 
   @override
   void initState() {
     super.initState();
-    _loadBudgetsData(_selectedPeriod);
+    _loadData();
   }
 
-  void _loadBudgetsData(String period) {
-    final data = MockBudgetsDataService.getMockData(period);
-    final budgets = (data['budgets'] as List)
-        .map((item) => Map<String, dynamic>.from(item as Map<String, dynamic>))
-        .toList();
-    final totalBudget = budgets.fold<double>(
-        0.0, (sum, budget) => sum + (budget['allocated'] as double));
-    final totalSpent = budgets.fold<double>(
-        0.0, (sum, budget) => sum + (budget['spent'] as double));
-    final alertBudget = _findHighestPercentageBudget(budgets);
+  Future<void> _loadData() async {
+    final now = DateTime.now();
+    int year;
+    int? month;
 
-    _currentBudgetsData = {
-      ...data,
-      'budgets': budgets,
-      'totalBudget': totalBudget,
-      'totalSpent': totalSpent,
-      'remainingBudget': totalBudget - totalSpent,
-      'alertBudget': alertBudget,
-    };
-    _currentBudgets = budgets;
+    switch (_selectedPeriod) {
+      case 'this_month':
+        year = now.year;
+        month = now.month;
+      case 'last_month':
+        if (now.month == 1) {
+          month = 12;
+          year = now.year - 1;
+        } else {
+          month = now.month - 1;
+          year = now.year;
+        }
+      default:
+        year = now.year;
+        month = null;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final summary = await _apiClient.getBudgets(year: year, month: month);
+      final budgets = summary.budgets
+          .map(
+            (item) => <String, dynamic>{
+              'rank': item.rank,
+              'name': item.name,
+              'allocated': item.goalAmount,
+              'spent': item.spentAmount,
+              'percentage': item.percentage,
+              'colour': item.colourValue,
+            },
+          )
+          .toList();
+      setState(() {
+        _isLoading = false;
+        _totalBudget = summary.totalGoal;
+        _totalSpent = summary.totalSpent;
+        _periodMonth = summary.monthName;
+        _periodYear = summary.year;
+        _currentBudgets = budgets;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _error = e.toString();
+      });
+    }
   }
 
   Map<String, dynamic> _findHighestPercentageBudget(
-      List<Map<String, dynamic>> budgets) {
-    if (budgets.isEmpty) {
-      return <String, dynamic>{};
-    }
+    List<Map<String, dynamic>> budgets,
+  ) {
+    if (budgets.isEmpty) return <String, dynamic>{};
     return budgets.reduce((current, next) {
-      final currentPercentage = current['percentage'] as double;
-      final nextPercentage = next['percentage'] as double;
-      return nextPercentage > currentPercentage ? next : current;
+      final a = current['percentage'] as double;
+      final b = next['percentage'] as double;
+      return b > a ? next : current;
     });
   }
 
   void _setPeriod(String period) {
-    setState(() {
-      _selectedPeriod = period;
-      _loadBudgetsData(period);
-    });
-    // TODO(1.18): Emit ChangePeriod event to BLoC
-    // context.read<BudgetsBloc>().add(ChangePeriod(period: period));
+    setState(() => _selectedPeriod = period);
+    _loadData();
   }
 
   void _toggleViewMode(Set<bool> selected) {
-    setState(() {
-      _isSimpleView = selected.first;
-    });
-    // TODO(1.19): Emit ToggleViewMode event to BLoC
-    // context.read<BudgetsBloc>().add(ToggleViewMode(isSimpleView: _isSimpleView));
+    setState(() => _isSimpleView = selected.first);
   }
 
   void _showEditBudgetLimitSheet(Map<String, dynamic> budget) {
@@ -150,188 +177,182 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   }
 
   void _updateBudgetLimit(String categoryName, double newLimit) {
-    final updatedBudgets = _currentBudgets
-        .map((budget) => Map<String, dynamic>.from(budget))
-        .toList();
+    final updated = _currentBudgets.map(Map<String, dynamic>.from).toList();
 
-    for (final budget in updatedBudgets) {
-      if (budget['name'] == categoryName) {
-        final spent = budget['spent'] as double;
-        budget['allocated'] = newLimit;
-        budget['percentage'] = newLimit > 0 ? (spent / newLimit * 100) : 0.0;
+    for (final b in updated) {
+      if (b['name'] == categoryName) {
+        final spent = b['spent'] as double;
+        b['allocated'] = newLimit;
+        b['percentage'] = newLimit > 0 ? (spent / newLimit * 100) : 0.0;
       }
     }
 
-    final totalBudget = updatedBudgets.fold<double>(
-      0.0,
-      (sum, budget) => sum + (budget['allocated'] as double),
-    );
-
-    final totalSpent = updatedBudgets.fold<double>(
-      0.0,
-      (sum, budget) => sum + (budget['spent'] as double),
-    );
-
-    final alertBudget = _findHighestPercentageBudget(updatedBudgets);
-
     setState(() {
-      _currentBudgets = updatedBudgets;
-      _currentBudgetsData['budgets'] = updatedBudgets;
-      _currentBudgetsData['totalBudget'] = totalBudget;
-      _currentBudgetsData['totalSpent'] = totalSpent;
-      _currentBudgetsData['remainingBudget'] = totalBudget - totalSpent;
-      _currentBudgetsData['alertBudget'] = alertBudget;
+      _currentBudgets = updated;
+      _totalBudget =
+          updated.fold(0, (sum, b) => sum + (b['allocated'] as double));
+      _totalSpent =
+          updated.fold(0, (sum, b) => sum + (b['spent'] as double));
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppHeader(
-        title: 'Budgets',
-        onMenuPressed: () {
-          // TODO: Implement drawer or navigation menu
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Menu opened')),
-          );
-        },
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              BudgetSummaryCard(
-                totalBudget: _currentBudgetsData['totalBudget'] as double,
-                totalSpent: _currentBudgetsData['totalSpent'] as double,
-                month: _currentBudgetsData['month'] as String,
-                year: _currentBudgetsData['year'] as int,
-              ),
-              const SizedBox(height: 16),
-              _buildAlertBudget(),
-              const SizedBox(height: 16),
-              // Time period selector
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    ElevatedButton(
-                      onPressed: _selectedPeriod == 'this_month'
-                          ? null
-                          : () => _setPeriod('this_month'),
-                      child: const Text('This Month'),
+      appBar: AppHeader(title: 'Budgets', onMenuPressed: () {}),
+      body: _isLoading && _currentBudgets.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null && _currentBudgets.isEmpty
+              ? _buildErrorState()
+              : SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        BudgetSummaryCard(
+                          totalBudget: _totalBudget,
+                          totalSpent: _totalSpent,
+                          month: _periodMonth,
+                          year: _periodYear,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildAlertBudget(),
+                        const SizedBox(height: 16),
+                        _buildPeriodSelector(),
+                        const SizedBox(height: 16),
+                        _buildViewModeToggle(),
+                        const SizedBox(height: 16),
+                        _buildBudgetChart(),
+                        const SizedBox(height: 16),
+                        _buildBudgetList(),
+                        const SizedBox(height: 8),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: _selectedPeriod == 'last_month'
-                          ? null
-                          : () => _setPeriod('last_month'),
-                      child: const Text('Last Month'),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: _selectedPeriod == 'this_year'
-                          ? null
-                          : () => _setPeriod('this_year'),
-                      child: const Text('This Year'),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: _selectedPeriod == 'custom'
-                          ? null
-                          : () => _setPeriod('custom'),
-                      child: const Text('Custom'),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              // View mode toggle
-              Row(
-                children: [
-                  const Text('View Mode:'),
-                  const SizedBox(width: 12),
-                  SegmentedButton<bool>(
-                    segments: const [
-                      ButtonSegment(
-                        value: true,
-                        label: Text('Standard view'),
-                      ),
-                      ButtonSegment(
-                        value: false,
-                        label: Text('Edit budgets'),
-                      ),
-                    ],
-                    selected: {_isSimpleView},
-                    onSelectionChanged: _toggleViewMode,
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Budget chart
-              _buildBudgetChart(),
-              const SizedBox(height: 16),
-              // Budget list (Advanced view only)
-              _buildBudgetList(),
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
-      ),
+                ),
       bottomNavigationBar: const AppFooter(activeIndex: 2),
     );
   }
 
-  Widget _buildAlertBudget() {
-    final alertBudget =
-        _currentBudgetsData['alertBudget'] as Map<String, dynamic>;
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _error ?? 'Something went wrong.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: _loadData, child: const Text('Retry')),
+          ],
+        ),
+      ),
+    );
+  }
 
+  Widget _buildAlertBudget() {
+    if (_currentBudgets.isEmpty) return const SizedBox.shrink();
+    final alert = _findHighestPercentageBudget(_currentBudgets);
+    if (alert.isEmpty) return const SizedBox.shrink();
     return BudgetAlertCard(
-      categoryName: alertBudget['name'] as String,
-      allocatedAmount: alertBudget['allocated'] as double,
-      currentAmount: alertBudget['spent'] as double,
-      percentage: (alertBudget['percentage'] as double).toInt().toDouble(),
-      categoryColour: alertBudget['colour'] as int,
+      categoryName: alert['name'] as String,
+      allocatedAmount: alert['allocated'] as double,
+      currentAmount: alert['spent'] as double,
+      percentage: (alert['percentage'] as double).toInt().toDouble(),
+      categoryColour: alert['colour'] as int,
+    );
+  }
+
+  Widget _buildPeriodSelector() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          ElevatedButton(
+            onPressed: _selectedPeriod == 'this_month'
+                ? null
+                : () => _setPeriod('this_month'),
+            child: const Text('This Month'),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: _selectedPeriod == 'last_month'
+                ? null
+                : () => _setPeriod('last_month'),
+            child: const Text('Last Month'),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: _selectedPeriod == 'this_year'
+                ? null
+                : () => _setPeriod('this_year'),
+            child: const Text('This Year'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildViewModeToggle() {
+    return Row(
+      children: [
+        const Text('View Mode:'),
+        const SizedBox(width: 12),
+        SegmentedButton<bool>(
+          segments: const [
+            ButtonSegment(value: true, label: Text('Standard view')),
+            ButtonSegment(value: false, label: Text('Edit budgets')),
+          ],
+          selected: {_isSimpleView},
+          onSelectionChanged: _toggleViewMode,
+        ),
+      ],
     );
   }
 
   Widget _buildBudgetList() {
-    if (_isSimpleView) {
-      return const SizedBox.shrink();
-    }
-
+    if (_isSimpleView) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Budget Details',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const Text(
+          'Budget Details',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 12),
-        ..._currentBudgets.map((b) => BudgetCard(
-              rank: b['rank'] as int,
-              categoryName: b['name'] as String,
-              allocatedAmount: b['allocated'] as double,
-              spentAmount: b['spent'] as double,
-              percentage: b['percentage'] as double,
-              categoryColour: b['colour'] as int,
-              onEditLimit: () => _showEditBudgetLimitSheet(b),
-            )),
+        ..._currentBudgets.map(
+          (b) => BudgetCard(
+            rank: b['rank'] as int,
+            categoryName: b['name'] as String,
+            allocatedAmount: b['allocated'] as double,
+            spentAmount: b['spent'] as double,
+            percentage: b['percentage'] as double,
+            categoryColour: b['colour'] as int,
+            onEditLimit: () => _showEditBudgetLimitSheet(b),
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildBudgetChart() {
-    final allBudgets = _currentBudgets
-        .map((b) => {
-              'name': b['name'] as String,
-              'allocated': b['allocated'] as double,
-              'spent': b['spent'] as double,
-              'colour': b['colour'] as int,
-            })
+    final chartCategories = _currentBudgets
+        .map(
+          (b) => <String, dynamic>{
+            'name': b['name'] as String,
+            'allocated': b['allocated'] as double,
+            'spent': b['spent'] as double,
+            'colour': b['colour'] as int,
+          },
+        )
         .toList();
 
     return BudgetChart(
-      categories: allBudgets,
+      categories: chartCategories,
       isSimpleView: _isSimpleView,
     );
   }
