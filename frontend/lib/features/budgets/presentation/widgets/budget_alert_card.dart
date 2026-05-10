@@ -37,8 +37,8 @@ class BudgetAlertCard extends StatelessWidget {
     
     return Card(
       color: isOverBudget 
-          ? Colors.red[50] 
-          : Colors.orange[50],
+          ? Colors.orange[10] 
+          : Colors.orange[10],
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -103,7 +103,7 @@ class BudgetAlertCard extends StatelessWidget {
                       '£${currentAmount.toStringAsFixed(2)}',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: isOverBudget ? Colors.red : Colors.orange,
+                            color: isOverBudget ? Colors.red : Colors.orange
                           ),
                     ),
                   ],
