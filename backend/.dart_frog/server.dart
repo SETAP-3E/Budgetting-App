@@ -11,6 +11,7 @@ import '../routes/transactions/index.dart' as transactions_index;
 import '../routes/places/details.dart' as places_details;
 import '../routes/places/autocomplete.dart' as places_autocomplete;
 import '../routes/categories/index.dart' as categories_index;
+import '../routes/budgets/index.dart' as budgets_index;
 import '../routes/accounts/index.dart' as accounts_index;
 
 import '../routes/_middleware.dart' as middleware;
@@ -33,6 +34,7 @@ Handler buildRootHandler() {
     ..mount('/transactions', (context) => buildTransactionsHandler()(context))
     ..mount('/places', (context) => buildPlacesHandler()(context))
     ..mount('/categories', (context) => buildCategoriesHandler()(context))
+    ..mount('/budgets', (context) => buildBudgetsHandler()(context))
     ..mount('/accounts', (context) => buildAccountsHandler()(context));
   return pipeline.addHandler(router);
 }
@@ -62,6 +64,13 @@ Handler buildCategoriesHandler() {
   final pipeline = const Pipeline();
   final router = Router()
     ..all('/', (context) => categories_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildBudgetsHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => budgets_index.onRequest(context,));
   return pipeline.addHandler(router);
 }
 
