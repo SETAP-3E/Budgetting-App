@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 
 /// Displays individual budget information with spending progress.
@@ -79,14 +80,14 @@ class BudgetCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '£${spentAmount.toStringAsFixed(2)}',
+                        formatCurrency(spentAmount),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: isOverBudget ? Colors.red : null,
                             ),
                       ),
                       Text(
-                        ' / £${allocatedAmount.toStringAsFixed(2)}',
+                        ' / ${formatCurrency(allocatedAmount)}',
                         style: Theme.of(context).textTheme.labelSmall,
                       ),
                     ],

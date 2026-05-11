@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 
 /// Alert card showing a budget that's close to or over limit.
@@ -35,8 +36,11 @@ class BudgetAlertCard extends StatelessWidget {
     final isOverBudget = percentage > 100;
     final displayPercentage = percentage.toInt().toDouble();
     
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
-      color: isOverBudget ? Colors.red[50] : Colors.orange[50],
+      color: isOverBudget
+          ? colorScheme.errorContainer
+          : colorScheme.tertiaryContainer,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -82,7 +86,7 @@ class BudgetAlertCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '£${allocatedAmount.toStringAsFixed(2)}',
+                      formatCurrency(allocatedAmount),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -98,7 +102,7 @@ class BudgetAlertCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '£${currentAmount.toStringAsFixed(2)}',
+                      formatCurrency(currentAmount),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: isOverBudget ? Colors.red : Colors.orange

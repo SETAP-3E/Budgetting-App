@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_summary_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,7 +26,7 @@ void main() {
   group('BudgetSummaryCard', () {
     testWidgets('renders total budget amount', (tester) async {
       await tester.pumpWidget(buildCard());
-      expect(find.text('£1000.00'), findsOneWidget);
+      expect(find.text(formatCurrency(1000)), findsOneWidget);
     });
 
     testWidgets('renders month and year', (tester) async {
@@ -77,7 +78,7 @@ void main() {
       );
 
       final remainingWidget =
-          tester.widget<Text>(find.text('£-100.00'));
+          tester.widget<Text>(find.text(formatCurrency(-100)));
       expect(remainingWidget.style?.color, Colors.red);
     });
 

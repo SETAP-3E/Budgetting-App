@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -25,19 +28,23 @@ class BudgetChart extends StatefulWidget {
 
 class _BudgetChartState extends State<BudgetChart> {
   int? _touchedIndex;
+  final _pieKey = GlobalKey();
+
+  static const double _innerRadius = 55;
+  static const double _outerRadius = 143;
 
   List<PieChartSectionData> _buildSections(double totalAllocated) {
     return List.generate(widget.categories.length, (index) {
       final c = widget.categories[index];
       final allocated = c['allocated'] as double;
-      final isHovered = _touchedIndex == index;
+      final isTouched = _touchedIndex == index;
       final percentage =
           totalAllocated > 0 ? allocated / totalAllocated * 100 : 0.0;
 
       return PieChartSectionData(
         color: Color(c['colour'] as int),
         value: allocated,
-        radius: isHovered ? 85 : 75,
+        radius: isTouched ? 85 : 75,
         title: percentage >= 5 ? '${percentage.toStringAsFixed(1)}%' : '',
         titleStyle: const TextStyle(
           color: Colors.white,
@@ -46,6 +53,44 @@ class _BudgetChartState extends State<BudgetChart> {
         ),
       );
     });
+  }
+
+  void _handleTap(TapUpDetails details) {
+    final box = _pieKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+
+    final local = box.globalToLocal(details.globalPosition);
+    final center = Offset(box.size.width / 2, box.size.height / 2);
+    final dx = local.dx - center.dx;
+    final dy = local.dy - center.dy;
+    final distance = sqrt(dx * dx + dy * dy);
+
+    if (distance < _innerRadius || distance > _outerRadius) {
+      setState(() => _touchedIndex = null);
+      return;
+    }
+
+    final total = widget.categories.fold<double>(
+      0,
+      (s, c) => s + (c['allocated'] as double),
+    );
+    if (total <= 0) return;
+
+    var angle = atan2(dy, dx) + pi / 2;
+    if (angle < 0) angle += 2 * pi;
+
+    double cumulative = 0;
+    for (var i = 0; i < widget.categories.length; i++) {
+      final slice =
+          (widget.categories[i]['allocated'] as double) / total * 2 * pi;
+      if (angle < cumulative + slice) {
+        setState(() => _touchedIndex = _touchedIndex == i ? null : i);
+        return;
+      }
+      cumulative += slice;
+    }
+
+    setState(() => _touchedIndex = null);
   }
 
   Widget _buildCenterTooltip() {
@@ -65,7 +110,7 @@ class _BudgetChartState extends State<BudgetChart> {
           textAlign: TextAlign.center,
         ),
         Text(
-          '£${spent.toStringAsFixed(2)} / £${allocated.toStringAsFixed(2)}',
+          '${formatCurrency(spent)} / ${formatCurrency(allocated)}',
           style: const TextStyle(fontSize: 11),
           textAlign: TextAlign.center,
         ),
@@ -104,77 +149,58 @@ class _BudgetChartState extends State<BudgetChart> {
                     ),
               ),
               const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 200,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          PieChart(
-                            PieChartData(
-                              centerSpaceRadius: 55,
-                              pieTouchData: PieTouchData(
-                                touchCallback: (event, response) {
-                                  setState(() {
-                                    _touchedIndex =
-                                        event.isInterestedForInteractions
-                                            ? response?.touchedSection
-                                                ?.touchedSectionIndex
-                                            : null;
-                                  });
-                                },
-                              ),
-                              sections: _buildSections(totalAllocated),
-                            ),
-                          ),
-                          if (_touchedIndex != null) _buildCenterTooltip(),
-                        ],
+              GestureDetector(
+                onTapUp: _handleTap,
+                child: SizedBox(
+                  key: _pieKey,
+                  height: 300,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      PieChart(
+                        PieChartData(
+                          centerSpaceRadius: _innerRadius,
+                          pieTouchData: PieTouchData(enabled: false),
+                          sections: _buildSections(totalAllocated),
+                        ),
                       ),
-                    ),
+                      if (_touchedIndex != null)
+                        IgnorePointer(child: _buildCenterTooltip()),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: widget.categories.map((category) {
-                        final allocated = category['allocated'] as double;
-                        final name = category['name'] as String;
-                        final colour = Color(category['colour'] as int);
-                        final percentage = totalAllocated > 0
-                            ? allocated / totalAllocated * 100
-                            : 0.0;
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 16,
+                runSpacing: 8,
+                children: widget.categories.map((category) {
+                  final allocated = category['allocated'] as double;
+                  final name = category['name'] as String;
+                  final colour = Color(category['colour'] as int);
+                  final percentage = totalAllocated > 0
+                      ? allocated / totalAllocated * 100
+                      : 0.0;
 
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: colour,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  '$name • ${percentage.toStringAsFixed(1)}%',
-                                  style:
-                                      Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: colour,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '$name • ${percentage.toStringAsFixed(1)}%',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  );
+                }).toList(),
               ),
             ],
           ),
@@ -223,8 +249,7 @@ class _BudgetChartState extends State<BudgetChart> {
                           style: Theme.of(context).textTheme.labelMedium,
                         ),
                         Text(
-                          '£${spent.toStringAsFixed(2)} / '
-                          '£${allocated.toStringAsFixed(2)}',
+                          '${formatCurrency(spent)} / ${formatCurrency(allocated)}',
                           style: Theme.of(context).textTheme.labelSmall,
                         ),
                       ],

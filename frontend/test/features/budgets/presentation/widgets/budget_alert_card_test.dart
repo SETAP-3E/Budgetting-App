@@ -62,20 +62,23 @@ void main() {
     });
 
     testWidgets(
-      'card background is orange when close to limit',
+      'card background uses tertiaryContainer when close to limit',
       (tester) async {
         await tester.pumpWidget(buildCard());
         final card = tester.widget<Card>(find.byType(Card));
-        expect(card.color, Colors.orange[50]);
+        final expected = ThemeData().colorScheme.tertiaryContainer;
+        expect(card.color, expected);
       },
     );
 
-    testWidgets('card background is red when over budget', (tester) async {
+    testWidgets('card background uses errorContainer when over budget',
+        (tester) async {
       await tester.pumpWidget(
         buildCard(currentAmount: 220, percentage: 110),
       );
       final card = tester.widget<Card>(find.byType(Card));
-      expect(card.color, Colors.red[50]);
+      final expected = ThemeData().colorScheme.errorContainer;
+      expect(card.color, expected);
     });
   });
 }

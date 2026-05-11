@@ -1,4 +1,5 @@
-import 'package:budgetting_frontend/features/budgets/data/budgets_api_client.dart';
+import 'package:budgetting_frontend/features/accounts/data/accounts_api_client.dart';
+import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_alert_card.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_card.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_chart.dart';
@@ -7,7 +8,7 @@ import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
 import 'package:flutter/material.dart';
 
-/// Budgets screen displaying budget summary, categories, and charts.
+/// Budgets screen showing per-account budget vs spending for the current month.
 class BudgetsScreen extends StatefulWidget {
   /// Create a [BudgetsScreen].
   const BudgetsScreen({super.key});
@@ -17,18 +18,21 @@ class BudgetsScreen extends StatefulWidget {
 }
 
 class _BudgetsScreenState extends State<BudgetsScreen> {
-  final _apiClient = BudgetsApiClient();
+  final _apiClient = AccountsApiClient();
 
-  String _selectedPeriod = 'this_month';
   bool _isSimpleView = true;
   bool _isLoading = false;
   String? _error;
 
   double _totalBudget = 0;
   double _totalSpent = 0;
-  String _periodMonth = '';
-  int _periodYear = DateTime.now().year;
   List<Map<String, dynamic>> _currentBudgets = [];
+
+  static const _monthNames = [
+    '',
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
 
   @override
   void initState() {
@@ -37,53 +41,40 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   }
 
   Future<void> _loadData() async {
-    final now = DateTime.now();
-    int year;
-    int? month;
-
-    switch (_selectedPeriod) {
-      case 'this_month':
-        year = now.year;
-        month = now.month;
-      case 'last_month':
-        if (now.month == 1) {
-          month = 12;
-          year = now.year - 1;
-        } else {
-          month = now.month - 1;
-          year = now.year;
-        }
-      default:
-        year = now.year;
-        month = null;
-    }
-
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      final summary = await _apiClient.getBudgets(year: year, month: month);
-      final budgets = summary.budgets
-          .map(
-            (item) => <String, dynamic>{
-              'rank': item.rank,
-              'name': item.name,
-              'allocated': item.goalAmount,
-              'spent': item.spentAmount,
-              'percentage': item.percentage,
-              'colour': item.colourValue,
-            },
-          )
-          .toList();
+      final accounts = await _apiClient.getAccounts();
+      final budgeted = accounts
+          .where((a) => a.monthlyBudget > 0)
+          .toList()
+        ..sort((a, b) => b.monthlyBudget.compareTo(a.monthlyBudget));
+
+      final budgets = budgeted.indexed.map((entry) {
+        final (i, account) = entry;
+        final spent = account.monthlySpent;
+        final allocated = account.monthlyBudget;
+        final colour = _resolveColour(account, i);
+        return <String, dynamic>{
+          'rank': i + 1,
+          'name': account.name,
+          'allocated': allocated,
+          'spent': spent,
+          'percentage': allocated > 0 ? spent / allocated * 100 : 0.0,
+          'colour': colour,
+        };
+      }).toList();
+
       setState(() {
         _isLoading = false;
-        _totalBudget = summary.totalGoal;
-        _totalSpent = summary.totalSpent;
-        _periodMonth = summary.monthName;
-        _periodYear = summary.year;
         _currentBudgets = budgets;
+        _totalBudget =
+            budgets.fold(0, (s, b) => s + (b['allocated'] as double));
+        _totalSpent =
+            budgets.fold(0, (s, b) => s + (b['spent'] as double));
       });
     } catch (e) {
       setState(() {
@@ -91,6 +82,15 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
         _error = e.toString();
       });
     }
+  }
+
+  int _resolveColour(AccountModel account, int index) {
+    const fallbacks = [
+      0xFF4CAF50, 0xFF2196F3, 0xFFFF9800,
+      0xFF9C27B0, 0xFFF44336, 0xFF00BCD4,
+    ];
+    final value = account.accentColor.toARGB32();
+    return value == 0 ? fallbacks[index % fallbacks.length] : value;
   }
 
   Map<String, dynamic> _findHighestPercentageBudget(
@@ -102,11 +102,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
       final b = next['percentage'] as double;
       return b > a ? next : current;
     });
-  }
-
-  void _setPeriod(String period) {
-    setState(() => _selectedPeriod = period);
-    _loadData();
   }
 
   void _toggleViewMode(Set<bool> selected) {
@@ -176,28 +171,27 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     );
   }
 
-  void _updateBudgetLimit(String categoryName, double newLimit) {
+  void _updateBudgetLimit(String accountName, double newLimit) {
     final updated = _currentBudgets.map(Map<String, dynamic>.from).toList();
-
     for (final b in updated) {
-      if (b['name'] == categoryName) {
+      if (b['name'] == accountName) {
         final spent = b['spent'] as double;
         b['allocated'] = newLimit;
         b['percentage'] = newLimit > 0 ? (spent / newLimit * 100) : 0.0;
       }
     }
-
     setState(() {
       _currentBudgets = updated;
       _totalBudget =
-          updated.fold(0, (sum, b) => sum + (b['allocated'] as double));
+          updated.fold(0, (s, b) => s + (b['allocated'] as double));
       _totalSpent =
-          updated.fold(0, (sum, b) => sum + (b['spent'] as double));
+          updated.fold(0, (s, b) => s + (b['spent'] as double));
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
     return Scaffold(
       appBar: AppHeader(title: 'Budgets', onMenuPressed: () {}),
       body: _isLoading && _currentBudgets.isEmpty
@@ -213,13 +207,11 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                         BudgetSummaryCard(
                           totalBudget: _totalBudget,
                           totalSpent: _totalSpent,
-                          month: _periodMonth,
-                          year: _periodYear,
+                          month: _monthNames[now.month],
+                          year: now.year,
                         ),
                         const SizedBox(height: 16),
                         _buildAlertBudget(),
-                        const SizedBox(height: 16),
-                        _buildPeriodSelector(),
                         const SizedBox(height: 16),
                         _buildViewModeToggle(),
                         const SizedBox(height: 16),
@@ -264,36 +256,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
       currentAmount: alert['spent'] as double,
       percentage: (alert['percentage'] as double).toInt().toDouble(),
       categoryColour: alert['colour'] as int,
-    );
-  }
-
-  Widget _buildPeriodSelector() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          ElevatedButton(
-            onPressed: _selectedPeriod == 'this_month'
-                ? null
-                : () => _setPeriod('this_month'),
-            child: const Text('This Month'),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: _selectedPeriod == 'last_month'
-                ? null
-                : () => _setPeriod('last_month'),
-            child: const Text('Last Month'),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: _selectedPeriod == 'this_year'
-                ? null
-                : () => _setPeriod('this_year'),
-            child: const Text('This Year'),
-          ),
-        ],
-      ),
     );
   }
 
