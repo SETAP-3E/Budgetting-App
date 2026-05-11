@@ -1,4 +1,4 @@
-import 'package:budgetting_frontend/features/accounts/data/mock_accounts_datasource.dart';
+import 'package:budgetting_frontend/features/accounts/data/accounts_api_client.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
 import 'package:budgetting_frontend/features/transactions/data/datasources/transactions_api_client.dart';
 import 'package:budgetting_frontend/features/transactions/presentation/widgets/location_search_field.dart';
@@ -7,13 +7,14 @@ import 'package:flutter/services.dart';
 
 /// Bottom sheet modal for logging a new expense.
 ///
-/// Loads categories from the API on open. Selecting "Other" reveals a
-/// free-text field for a custom category name. Location is picked via
-/// [LocationSearchField] (Google Places Autocomplete). Saves via
-/// [TransactionsApiClient].
+/// Loads categories and accounts from the API on open. [accountsOverride]
+/// may be supplied in tests to skip the network call.
 class AddExpenseSheet extends StatefulWidget {
   /// Create an [AddExpenseSheet].
-  const AddExpenseSheet({super.key});
+  const AddExpenseSheet({super.key, this.accountsOverride});
+
+  /// Pre-loaded accounts list — pass in tests to avoid a live server call.
+  final List<AccountModel>? accountsOverride;
 
   @override
   State<AddExpenseSheet> createState() => _AddExpenseSheetState();
@@ -25,8 +26,11 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   final _customCategoryController = TextEditingController();
 
   final _apiClient = TransactionsApiClient();
+  final _accountsClient = AccountsApiClient();
 
-  final List<AccountModel> _accounts = MockAccountsDatasource.getAccounts();
+  List<AccountModel> _accounts = [];
+  bool _loadingAccounts = true;
+  String? _accountError;
   late AccountModel? _selectedAccount;
 
   List<Map<String, dynamic>> _categories = [];
@@ -48,6 +52,31 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   void initState() {
     super.initState();
     _loadCategories();
+    if (widget.accountsOverride != null) {
+      _accounts = widget.accountsOverride!;
+      _loadingAccounts = false;
+    } else {
+      _loadAccounts();
+    }
+  }
+
+  Future<void> _loadAccounts() async {
+    try {
+      final accounts = await _accountsClient.getAccounts();
+      if (mounted) {
+        setState(() {
+          _accounts = accounts;
+          _loadingAccounts = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _accountError = 'Could not load accounts. Is the server running?';
+          _loadingAccounts = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadCategories() async {
@@ -165,34 +194,46 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
             ),
             const SizedBox(height: 16),
             // Account selector
-            DropdownButtonFormField<String>(
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              decoration: const InputDecoration(
-                labelText: 'Account',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.account_balance_wallet_outlined),
-              ),
-              items: _accounts
-                  .map(
-                    (acc) => DropdownMenuItem(
-                      value: acc.id,
-                      child: Row(
-                        children: [
-                          Icon(acc.type.icon, color: acc.accentColor, size: 18),
-                          const SizedBox(width: 8),
-                          Text(acc.name),
-                        ],
+            if (_loadingAccounts)
+              const Center(child: CircularProgressIndicator())
+            else if (_accountError != null)
+              Text(
+                _accountError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              )
+            else
+              DropdownButtonFormField<String>(
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                decoration: const InputDecoration(
+                  labelText: 'Account',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.account_balance_wallet_outlined),
+                ),
+                items: _accounts
+                    .map(
+                      (acc) => DropdownMenuItem(
+                        value: acc.id,
+                        child: Row(
+                          children: [
+                            Icon(
+                              acc.type.icon,
+                              color: acc.accentColor,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(acc.name),
+                          ],
+                        ),
                       ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (id) => setState(
-                () => _selectedAccount =
-                    _accounts.firstWhere((a) => a.id == id),
+                    )
+                    .toList(),
+                onChanged: (id) => setState(
+                  () => _selectedAccount =
+                      _accounts.firstWhere((a) => a.id == id),
+                ),
+                validator: (v) =>
+                    v == null ? 'Please select an account' : null,
               ),
-              validator: (v) =>
-                  v == null ? 'Please select an account' : null,
-            ),
             const SizedBox(height: 16),
             // Location search field (Places Autocomplete)
             LocationSearchField(
@@ -277,7 +318,8 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
             ],
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: _loadingCategories ? null : _save,
+              onPressed:
+                  _loadingCategories || _loadingAccounts ? null : _save,
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 4),
                 child: Text('Save Expense'),

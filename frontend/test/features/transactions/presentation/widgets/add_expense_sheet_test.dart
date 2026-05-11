@@ -1,13 +1,20 @@
+import 'package:budgetting_frontend/features/accounts/data/mock_accounts_datasource.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
 import 'package:budgetting_frontend/features/transactions/presentation/widgets/add_expense_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-// Pumps the widget and drains the pending Dio timer from initState's
-// getCategories call (which never completes without a running server).
+// Pumps the widget with pre-loaded mock accounts (skips the live API call)
+// and drains the pending Dio timer from initState's getCategories call.
 Future<void> _pumpWidget(WidgetTester tester) async {
   await tester.pumpWidget(
-    const MaterialApp(home: Scaffold(body: AddExpenseSheet())),
+    MaterialApp(
+      home: Scaffold(
+        body: AddExpenseSheet(
+          accountsOverride: MockAccountsDatasource.getAccounts(),
+        ),
+      ),
+    ),
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 200));
