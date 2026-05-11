@@ -10,6 +10,7 @@ import 'package:budgetting_frontend/features/transactions/presentation/widgets/a
 import 'package:budgetting_frontend/features/transactions/presentation/widgets/transactions_filter_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 
 /// Screen displaying the paginated, searchable, sortable transaction list.
 class TransactionsScreen extends StatelessWidget {
@@ -94,6 +95,13 @@ class _TransactionsView extends StatelessWidget {
               context,
               context.read<TransactionsBloc>().state.filter,
             ),
+          ),
+          BlocBuilder<TransactionsBloc, TransactionsState>(
+            buildWhen: (prev, next) => prev.filter != next.filter,
+            builder: (context, state) {
+              if (state.filter.isEmpty) return const SizedBox.shrink();
+              return _ActiveFilterChips(filter: state.filter);
+            },
           ),
           Expanded(
             child: BlocBuilder<TransactionsBloc, TransactionsState>(
@@ -194,7 +202,7 @@ class _TransactionsView extends StatelessWidget {
 }
 
 /// Search bar + sort/filter icon buttons.
-class _SearchAndToolbar extends StatelessWidget {
+class _SearchAndToolbar extends StatefulWidget {
   const _SearchAndToolbar({
     required this.onSortTap,
     required this.onFilterTap,
@@ -204,27 +212,52 @@ class _SearchAndToolbar extends StatelessWidget {
   final VoidCallback onFilterTap;
 
   @override
+  State<_SearchAndToolbar> createState() => _SearchAndToolbarState();
+}
+
+class _SearchAndToolbarState extends State<_SearchAndToolbar> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: context.read<TransactionsBloc>().state.searchQuery,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
       child: Row(
         children: [
           Expanded(
-            child: BlocSelector<TransactionsBloc, TransactionsState, String>(
-              selector: (s) => s.searchQuery,
-              builder: (context, query) => TextField(
-                onChanged: (value) => context
+            child: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _controller,
+              builder: (context, value, _) => TextField(
+                controller: _controller,
+                onChanged: (v) => context
                     .read<TransactionsBloc>()
-                    .add(TransactionsSearchChanged(value)),
+                    .add(TransactionsSearchChanged(v)),
                 decoration: InputDecoration(
                   hintText: 'Search transactions…',
                   prefixIcon: const Icon(Icons.search),
-                  suffixIcon: query.isNotEmpty
+                  suffixIcon: value.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear),
-                          onPressed: () => context
-                              .read<TransactionsBloc>()
-                              .add(const TransactionsSearchChanged('')),
+                          onPressed: () {
+                            _controller.clear();
+                            context
+                                .read<TransactionsBloc>()
+                                .add(const TransactionsSearchChanged(''));
+                          },
                         )
                       : null,
                   isDense: true,
@@ -243,7 +276,7 @@ class _SearchAndToolbar extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.filter_list),
                   tooltip: 'Filter',
-                  onPressed: onFilterTap,
+                  onPressed: widget.onFilterTap,
                 ),
                 if (hasFilter)
                   Positioned(
@@ -264,10 +297,139 @@ class _SearchAndToolbar extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.sort),
             tooltip: 'Sort',
-            onPressed: onSortTap,
+            onPressed: widget.onSortTap,
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Horizontally scrolling row of chips showing each active filter.
+class _ActiveFilterChips extends StatelessWidget {
+  const _ActiveFilterChips({required this.filter});
+
+  final TransactionFilter filter;
+
+  static final _dateFmt = DateFormat('d MMM yyyy');
+
+  void _update(BuildContext context, TransactionFilter updated) {
+    context.read<TransactionsBloc>().add(TransactionsFilterChanged(updated));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = <Widget>[];
+
+    if (filter.dateFrom != null) {
+      chips.add(_chip(
+        label: 'From: ${_dateFmt.format(filter.dateFrom!)}',
+        onRemove: () => _update(
+          context,
+          TransactionFilter(
+            dateTo: filter.dateTo,
+            categoryQuery: filter.categoryQuery,
+            minAmount: filter.minAmount,
+            maxAmount: filter.maxAmount,
+          ),
+        ),
+      ),);
+    }
+
+    if (filter.dateTo != null) {
+      chips.add(_chip(
+        label: 'To: ${_dateFmt.format(filter.dateTo!)}',
+        onRemove: () => _update(
+          context,
+          TransactionFilter(
+            dateFrom: filter.dateFrom,
+            categoryQuery: filter.categoryQuery,
+            minAmount: filter.minAmount,
+            maxAmount: filter.maxAmount,
+          ),
+        ),
+      ),);
+    }
+
+    if (filter.categoryQuery != null && filter.categoryQuery!.isNotEmpty) {
+      chips.add(_chip(
+        label: 'Category: ${filter.categoryQuery}',
+        onRemove: () => _update(
+          context,
+          TransactionFilter(
+            dateFrom: filter.dateFrom,
+            dateTo: filter.dateTo,
+            minAmount: filter.minAmount,
+            maxAmount: filter.maxAmount,
+          ),
+        ),
+      ),);
+    }
+
+    if (filter.minAmount != null) {
+      chips.add(_chip(
+        label: 'Min: ${formatCurrency(filter.minAmount!)}',
+        onRemove: () => _update(
+          context,
+          TransactionFilter(
+            dateFrom: filter.dateFrom,
+            dateTo: filter.dateTo,
+            categoryQuery: filter.categoryQuery,
+            maxAmount: filter.maxAmount,
+          ),
+        ),
+      ),);
+    }
+
+    if (filter.maxAmount != null) {
+      chips.add(_chip(
+        label: 'Max: ${formatCurrency(filter.maxAmount!)}',
+        onRemove: () => _update(
+          context,
+          TransactionFilter(
+            dateFrom: filter.dateFrom,
+            dateTo: filter.dateTo,
+            categoryQuery: filter.categoryQuery,
+            minAmount: filter.minAmount,
+          ),
+        ),
+      ),);
+    }
+
+    if (chips.length > 1) {
+      chips.add(
+        ActionChip(
+          label: const Text('Clear all'),
+          onPressed: () => context
+              .read<TransactionsBloc>()
+              .add(const TransactionsFilterCleared()),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Row(
+        children: chips
+            .map(
+              (c) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: c,
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _chip({required String label, required VoidCallback onRemove}) {
+    return Chip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      deleteIcon: const Icon(Icons.close, size: 14),
+      onDeleted: onRemove,
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 }
