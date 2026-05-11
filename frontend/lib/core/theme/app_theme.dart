@@ -1,36 +1,36 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Colour palette
-  static const Color primaryTeal = Color(0xFF4DB6AC); // Primary UI colour (warm)
-  static const Color successGreen = Color(0xFF2E7D32); // Progress & positive states only
-  static const Color accentOrange = Color(0xFFFF9800); // Warm accent
-  static const Color accentGold = Color(0xFFFFC107); // Warm accent
-  static const Color accentLightGreen = Color(0xFF66BB6A); // Warm accent
-  static const Color white = Color(0xFFFFFFFF);
-  static const Color lightGrey = Color(0xFFF5F5F5);
-  static const Color darkText = Color(0xFF212121);
-  static const Color mediumText = Color(0xFF757575);
-  
-  // Dark theme colours
-  static const Color darkBg = Color(0xFF121212);
-  static const Color darkSurface = Color(0xFF1E1E1E);
-  static const Color lightText = Color(0xFFFFFFFF);
-  static const Color lightGreyText = Color(0xFFE0E0E0);
-  static const Color mediumGreyText = Color(0xFFB0B0B0);
+  // Logo colour palette
+  static const Color primaryMint    = Color(0xFF32B5A0); // body dark → primary
+  static const Color lightMint      = Color(0xFFA7E9DA); // body light
+  static const Color darkTeal       = Color(0xFF1A806D); // seams / detail
+  static const Color cyanAccent     = Color(0xFF00E1FD); // cape highlight
+  static const Color navyVisor      = Color(0xFF141E28); // face / dark surfaces
+  static const Color noteGreen      = Color(0xFF88D4AB); // positive states
+  static const Color scaffoldLight  = Color(0xFFF0FAFA); // light bg
+  static const Color white          = Color(0xFFFFFFFF);
+  static const Color darkText       = Color(0xFF1A2E28);
+  static const Color mediumText     = Color(0xFF557060);
+
+  // Dark theme
+  static const Color darkSurface    = Color(0xFF1E2D28);
+  static const Color lightText      = Color(0xFFFFFFFF);
+  static const Color lightGreyText  = Color(0xFFD4EEE8);
+  static const Color mediumGreyText = Color(0xFF88B8AC);
 
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: const ColorScheme.light(
-        primary: primaryTeal,
-        secondary: primaryTeal,
-        tertiary: accentOrange,
-        error: Colors.red, // Kept for validation, but not used for spending
+        primary: primaryMint,
+        secondary: primaryMint,
+        tertiary: cyanAccent,
+        error: Colors.red,
       ),
-      scaffoldBackgroundColor: lightGrey,
+      scaffoldBackgroundColor: scaffoldLight,
       appBarTheme: const AppBarTheme(
-        backgroundColor: primaryTeal,
+        backgroundColor: primaryMint,
         foregroundColor: white,
         elevation: 0,
         centerTitle: false,
@@ -40,39 +40,27 @@ class AppTheme {
         elevation: 1,
         margin: EdgeInsets.all(0),
       ),
-      textTheme: const TextTheme(
-        // Large metric display (36pt)
-        displayLarge: TextStyle(
-          fontSize: 36,
-          fontWeight: FontWeight.bold,
-          color: darkText,
-        ),
-        // Titles (18pt)
-        titleLarge: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: darkText,
-        ),
-        // Body text (14pt)
-        bodyMedium: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.normal,
-          color: darkText,
-        ),
-        // Labels (12pt)
-        labelSmall: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.normal,
-          color: mediumText,
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: primaryMint,
+          foregroundColor: white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: successGreen,
+          backgroundColor: primaryMint,
           foregroundColor: white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
+      ),
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: darkText),
+        headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: darkText),
+        titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: darkText),
+        bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: darkText),
+        labelSmall: TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: mediumText),
       ),
     );
   }
@@ -81,15 +69,15 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: const ColorScheme.dark(
-        primary: primaryTeal,
-        secondary: primaryTeal,
-        tertiary: accentOrange,
-        surface: darkSurface,
+        primary: primaryMint,
+        secondary: primaryMint,
+        tertiary: cyanAccent,
+        surface: navyVisor,
         error: Colors.red,
       ),
-      scaffoldBackgroundColor: darkBg,
+      scaffoldBackgroundColor: navyVisor,
       appBarTheme: const AppBarTheme(
-        backgroundColor: primaryTeal,
+        backgroundColor: navyVisor,
         foregroundColor: white,
         elevation: 0,
         centerTitle: false,
@@ -99,39 +87,27 @@ class AppTheme {
         elevation: 1,
         margin: EdgeInsets.all(0),
       ),
-      textTheme: const TextTheme(
-        // Large metric display (36pt)
-        displayLarge: TextStyle(
-          fontSize: 36,
-          fontWeight: FontWeight.bold,
-          color: lightText,
-        ),
-        // Titles (18pt)
-        titleLarge: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: lightText,
-        ),
-        // Body text (14pt)
-        bodyMedium: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.normal,
-          color: lightGreyText,
-        ),
-        // Labels (12pt)
-        labelSmall: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.normal,
-          color: mediumGreyText,
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: primaryMint,
+          foregroundColor: white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: successGreen,
+          backgroundColor: primaryMint,
           foregroundColor: white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
+      ),
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: lightText),
+        headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: lightText),
+        titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: lightText),
+        bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: lightGreyText),
+        labelSmall: TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: mediumGreyText),
       ),
     );
   }

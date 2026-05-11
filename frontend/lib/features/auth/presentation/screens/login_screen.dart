@@ -1,10 +1,12 @@
 import 'package:budgetting_frontend/core/router/app_router.dart';
+import 'package:budgetting_frontend/core/theme/app_theme.dart';
+import 'package:budgetting_frontend/core/widgets/animated_mascot.dart';
 import 'package:budgetting_frontend/features/auth/data/auth_api_client.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Login screen — username + password form.
+/// Login screen — mascot header + username/password form.
 class LoginScreen extends StatefulWidget {
   /// Create a [LoginScreen].
   const LoginScreen({super.key});
@@ -41,7 +43,6 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (!mounted) return;
       authNotifier.notifyLogin(newToken: creds.token);
-      // Keep spinner visible until GoRouter disposes this screen.
     } on DioException catch (e) {
       final status = e.response?.statusCode;
       if (mounted) {
@@ -68,9 +69,25 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Mascot
+                  const AnimatedMascot(height: 180),
+                  const SizedBox(height: 16),
+                  // App name
                   Text(
-                    'Welcome back',
-                    style: Theme.of(context).textTheme.headlineMedium,
+                    'Budget Buddy',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: AppTheme.primaryMint,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Your personal finance companion',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.mediumText,
+                        ),
                   ),
                   const SizedBox(height: 32),
                   TextFormField(
@@ -95,7 +112,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       _error!,
                       style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,),
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 24),
@@ -105,7 +123,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ? const SizedBox(
                             height: 20,
                             width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Log in'),
                   ),

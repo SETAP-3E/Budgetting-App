@@ -1,10 +1,12 @@
 import 'package:budgetting_frontend/core/router/app_router.dart';
+import 'package:budgetting_frontend/core/theme/app_theme.dart';
+import 'package:budgetting_frontend/core/widgets/animated_mascot.dart';
 import 'package:budgetting_frontend/features/auth/data/auth_api_client.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Sign-up screen — username + password + confirm password.
+/// Sign-up screen — mascot header + username/password/confirm fields.
 class SignupScreen extends StatefulWidget {
   /// Create a [SignupScreen].
   const SignupScreen({super.key});
@@ -43,7 +45,6 @@ class _SignupScreenState extends State<SignupScreen> {
       );
       if (!mounted) return;
       authNotifier.notifyLogin(newToken: creds.token);
-      // Keep spinner visible until GoRouter disposes this screen.
     } on DioException catch (e) {
       final status = e.response?.statusCode;
       final body = e.response?.data as Map<String, dynamic>?;
@@ -75,9 +76,24 @@ class _SignupScreenState extends State<SignupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Mascot (slightly smaller to leave room for extra field)
+                  const AnimatedMascot(height: 140),
+                  const SizedBox(height: 16),
                   Text(
-                    'Create account',
-                    style: Theme.of(context).textTheme.headlineMedium,
+                    'Budget Buddy',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: AppTheme.primaryMint,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Create your account',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.mediumText,
+                        ),
                   ),
                   const SizedBox(height: 32),
                   TextFormField(
@@ -127,7 +143,8 @@ class _SignupScreenState extends State<SignupScreen> {
                     Text(
                       _error!,
                       style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,),
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 24),
@@ -137,7 +154,10 @@ class _SignupScreenState extends State<SignupScreen> {
                         ? const SizedBox(
                             height: 20,
                             width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Create account'),
                   ),
