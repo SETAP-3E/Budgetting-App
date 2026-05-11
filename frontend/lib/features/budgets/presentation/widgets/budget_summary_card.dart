@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 
 /// Displays total budget summary with allocated, spent, and remaining amounts.
@@ -44,7 +45,7 @@ class BudgetSummaryCard extends StatelessWidget {
           children: [
             // Total budget amount (36pt bold)
             Text(
-              '£${totalBudget.toStringAsFixed(2)}',
+              formatCurrency(totalBudget),
               style: Theme.of(context).textTheme.displayLarge,
             ),
             const SizedBox(height: 8),
@@ -67,7 +68,7 @@ class BudgetSummaryCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '£${totalSpent.toStringAsFixed(2)}',
+                      formatCurrency(totalSpent),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: isOverBudget ? Colors.red : null,
@@ -84,7 +85,7 @@ class BudgetSummaryCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '£${remainingBudget.toStringAsFixed(2)}',
+                      formatCurrency(remainingBudget),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: remainingBudget < 0 ? Colors.red : Colors.green,
@@ -124,19 +125,24 @@ class BudgetSummaryCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red[50],
+                      color: Theme.of(context).colorScheme.errorContainer,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red[300]!),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.warning, color: Colors.red[700], size: 20),
+                        Icon(
+                          Icons.warning,
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'You have exceeded your budget!',
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: Colors.red[700],
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onErrorContainer,
                             ),
                           ),
                         ),

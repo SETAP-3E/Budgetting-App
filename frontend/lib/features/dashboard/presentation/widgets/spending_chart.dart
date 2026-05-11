@@ -161,7 +161,6 @@ class _SpendingChartState extends State<SpendingChart> {
                         if (event.localPosition == null) {
                           _hoveredSegmentIndex = null;
                         } else {
-                          // ignore: lines_longer_than_80_chars
                           _hoveredSegmentIndex = pieTouchResponse
                               ?.touchedSection?.touchedSectionIndex;
                         }
