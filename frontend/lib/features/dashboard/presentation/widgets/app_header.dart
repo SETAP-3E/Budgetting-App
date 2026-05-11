@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/router/app_router.dart';
 import 'package:flutter/material.dart';
 
 /// Reusable app header with title.
@@ -23,7 +24,14 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       title: Text(title),
-      actions: actions,
+      actions: [
+        ...?actions,
+        IconButton(
+          icon: const Icon(Icons.logout),
+          tooltip: 'Log out',
+          onPressed: authNotifier.notifyLogout,
+        ),
+      ],
     );
   }
 

@@ -1,3 +1,5 @@
+import 'package:budgetting_frontend/core/network/auth_interceptor.dart';
+import 'package:budgetting_frontend/core/router/app_router.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -5,21 +7,17 @@ import 'package:flutter/material.dart';
 /// HTTP client for the accounts API endpoints.
 class AccountsApiClient {
   /// Create an [AccountsApiClient].
-  AccountsApiClient() : _dio = Dio(BaseOptions(baseUrl: _baseUrl));
+  AccountsApiClient() : _dio = Dio(BaseOptions(baseUrl: _baseUrl)) {
+    _dio.interceptors.add(AuthInterceptor(authNotifier: authNotifier));
+  }
 
   static const String _baseUrl = 'http://localhost:8080';
 
-  /// Dev user UUID — matches the seeded record in database/seeds/dev_seed.sql.
-  static const String devUserId = '00000000-0000-0000-0000-000000000001';
-
   final Dio _dio;
 
-  /// Fetches all active accounts for the dev user.
+  /// Fetches all active accounts for the authenticated user.
   Future<List<AccountModel>> getAccounts() async {
-    final response = await _dio.get<List<dynamic>>(
-      '/accounts',
-      queryParameters: {'user_id': devUserId},
-    );
+    final response = await _dio.get<List<dynamic>>('/accounts');
     return (response.data ?? [])
         .cast<Map<String, dynamic>>()
         .map(_fromJson)
@@ -37,7 +35,6 @@ class AccountsApiClient {
     final response = await _dio.post<Map<String, dynamic>>(
       '/accounts',
       data: {
-        'user_id': devUserId,
         'name': name,
         'account_type': type.name,
         'balance': balance,

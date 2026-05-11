@@ -1,14 +1,14 @@
+import 'package:budgetting_frontend/core/network/auth_interceptor.dart';
+import 'package:budgetting_frontend/core/router/app_router.dart';
 import 'package:budgetting_frontend/features/budgets/domain/models/budget_models.dart';
 import 'package:dio/dio.dart';
 
 /// HTTP client for the budgets API endpoint.
 class BudgetsApiClient {
   /// Create a [BudgetsApiClient].
-  BudgetsApiClient()
-      : _dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080'));
-
-  static const String _devUserId =
-      '00000000-0000-0000-0000-000000000001';
+  BudgetsApiClient() : _dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080')) {
+    _dio.interceptors.add(AuthInterceptor(authNotifier: authNotifier));
+  }
 
   final Dio _dio;
 
@@ -20,7 +20,6 @@ class BudgetsApiClient {
     int? month,
   }) async {
     final params = <String, String>{
-      'user_id': _devUserId,
       'year': year.toString(),
       if (month != null) 'month': month.toString(),
     };

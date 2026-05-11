@@ -1,43 +1,28 @@
+import 'package:budgetting_frontend/core/network/auth_interceptor.dart';
+import 'package:budgetting_frontend/core/router/app_router.dart';
 import 'package:budgetting_frontend/features/transactions/domain/models/transaction_model.dart';
 import 'package:dio/dio.dart';
 
 /// HTTP client for the transactions, categories, and places API endpoints.
-///
-/// Uses hardcoded dev UUIDs until real authentication is implemented.
 class TransactionsApiClient {
   /// Create a [TransactionsApiClient].
-  TransactionsApiClient() : _dio = Dio(BaseOptions(baseUrl: _baseUrl));
+  TransactionsApiClient() : _dio = Dio(BaseOptions(baseUrl: _baseUrl)) {
+    _dio.interceptors.add(AuthInterceptor(authNotifier: authNotifier));
+  }
 
   static const String _baseUrl = 'http://localhost:8080';
 
-  /// Dev user UUID — matches the seeded record in [database/seeds/dev_seed.sql].
-  static const String devUserId = '00000000-0000-0000-0000-000000000001';
-
-  /// Dev account UUID — matches the seeded record in
-  /// [database/seeds/dev_seed.sql].
-  static const String devAccountId = '00000000-0000-0000-0000-000000000002';
-
   final Dio _dio;
 
-  /// Fetches all categories available to the dev user.
-  ///
-  /// Returns a list of maps with keys: id, name, icon, colour_value,
-  /// is_predefined.
+  /// Fetches all categories available to the authenticated user.
   Future<List<Map<String, dynamic>>> getCategories() async {
-    final response = await _dio.get<List<dynamic>>(
-      '/categories',
-      queryParameters: {'user_id': devUserId},
-    );
-    return (response.data ?? [])
-        .cast<Map<String, dynamic>>();
+    final response = await _dio.get<List<dynamic>>('/categories');
+    return (response.data ?? []).cast<Map<String, dynamic>>();
   }
 
-  /// Fetches all transactions for the dev user, newest first.
+  /// Fetches all transactions for the authenticated user, newest first.
   Future<List<TransactionModel>> getTransactions() async {
-    final response = await _dio.get<List<dynamic>>(
-      '/transactions',
-      queryParameters: {'user_id': devUserId},
-    );
+    final response = await _dio.get<List<dynamic>>('/transactions');
 
     return (response.data ?? []).cast<Map<String, dynamic>>().map((json) {
       return TransactionModel(
@@ -56,10 +41,6 @@ class TransactionsApiClient {
   }
 
   /// Posts a new transaction to the API.
-  ///
-  /// Provide either [categoryId] (for an existing category) or
-  /// [newCategoryName] (to create a custom one on the fly).
-  /// If [latitude] and [longitude] are provided they must both be non-null.
   Future<void> createTransaction({
     required double amount,
     required String transactionDate,
@@ -73,7 +54,6 @@ class TransactionsApiClient {
     await _dio.post<void>(
       '/transactions',
       data: {
-        'user_id': devUserId,
         'account_id': accountId,
         if (categoryId != null) 'category_id': categoryId,
         if (newCategoryName != null) 'new_category_name': newCategoryName,
@@ -102,7 +82,6 @@ class TransactionsApiClient {
     await _dio.put<void>(
       '/transactions/$id',
       data: {
-        'user_id': devUserId,
         'account_id': accountId,
         if (categoryId != null) 'category_id': categoryId,
         if (newCategoryName != null) 'new_category_name': newCategoryName,
@@ -118,15 +97,10 @@ class TransactionsApiClient {
 
   /// Deletes a transaction by [id].
   Future<void> deleteTransaction(String id) async {
-    await _dio.delete<void>(
-      '/transactions/$id',
-      queryParameters: {'user_id': devUserId},
-    );
+    await _dio.delete<void>('/transactions/$id');
   }
 
   /// Returns place autocomplete suggestions from the backend Places proxy.
-  ///
-  /// Each item has `place_id` and `description` keys.
   Future<List<Map<String, dynamic>>> getPlaceSuggestions(String query) async {
     final response = await _dio.get<Map<String, dynamic>>(
       '/places/autocomplete',
