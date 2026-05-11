@@ -8,6 +8,7 @@ import 'package:dart_frog/dart_frog.dart';
 
 import '../routes/users/users.dart' as users_users;
 import '../routes/transactions/index.dart' as transactions_index;
+import '../routes/transactions/[id].dart' as transactions_$id;
 import '../routes/places/details.dart' as places_details;
 import '../routes/places/autocomplete.dart' as places_autocomplete;
 import '../routes/categories/index.dart' as categories_index;
@@ -49,7 +50,7 @@ Handler buildUsersHandler() {
 Handler buildTransactionsHandler() {
   final pipeline = const Pipeline();
   final router = Router()
-    ..all('/', (context) => transactions_index.onRequest(context,));
+    ..all('/<id>', (context,id,) => transactions_$id.onRequest(context,id,))..all('/', (context) => transactions_index.onRequest(context,));
   return pipeline.addHandler(router);
 }
 
