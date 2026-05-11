@@ -23,22 +23,18 @@ Future<Response> onRequest(RequestContext context, String id) async {
 }
 
 Future<Response> _updateTransaction(RequestContext context, String id) async {
+  final userId = context.read<String>();
   final body = await context.request.json() as Map<String, dynamic>;
 
-  final userId = body['user_id'] as String?;
   final accountId = body['account_id'] as String?;
   final amount = (body['amount'] as num?)?.toDouble();
   final transactionDate = body['transaction_date'] as String?;
 
-  if (userId == null ||
-      accountId == null ||
-      amount == null ||
-      transactionDate == null) {
+  if (accountId == null || amount == null || transactionDate == null) {
     return Response.json(
       statusCode: 400,
       body: {
-        'error':
-            'user_id, account_id, amount and transaction_date are required',
+        'error': 'account_id, amount and transaction_date are required',
       },
     );
   }
@@ -107,14 +103,7 @@ Future<Response> _updateTransaction(RequestContext context, String id) async {
 }
 
 Future<Response> _deleteTransaction(RequestContext context, String id) async {
-  final userId = context.request.uri.queryParameters['user_id'];
-  if (userId == null || userId.isEmpty) {
-    return Response.json(
-      statusCode: 400,
-      body: {'error': 'user_id query parameter is required'},
-    );
-  }
-
+  final userId = context.read<String>();
   final connection = await context.read<Future<Connection>>();
   final repo = TransactionRepository(connection);
   final deleted = await repo.deleteTransaction(id: id, userId: userId);

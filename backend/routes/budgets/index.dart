@@ -5,7 +5,7 @@ import 'package:budgetting_backend/repositories/budget_repository.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:postgres/postgres.dart';
 
-/// GET /budgets?user_id=...&year=...&month=... — budget summary for a period.
+/// GET /budgets?year=...&month=... — budget summary for the authenticated user.
 ///
 /// The `month` param is optional. When omitted the full year is returned.
 Future<Response> onRequest(RequestContext context) async {
@@ -13,15 +13,15 @@ Future<Response> onRequest(RequestContext context) async {
     return Response(statusCode: HttpStatus.methodNotAllowed);
   }
 
+  final userId = context.read<String>();
   final params = context.request.uri.queryParameters;
-  final userId = params['user_id'];
   final yearStr = params['year'];
   final monthStr = params['month'];
 
-  if (userId == null || userId.isEmpty || yearStr == null) {
+  if (yearStr == null) {
     return Response.json(
       statusCode: 400,
-      body: {'error': 'user_id and year query parameters are required'},
+      body: {'error': 'year query parameter is required'},
     );
   }
 

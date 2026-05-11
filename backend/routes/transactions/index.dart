@@ -5,8 +5,8 @@ import 'package:budgetting_backend/repositories/transaction_repository.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:postgres/postgres.dart';
 
-/// GET  /transactions?user_id=...   — list transactions for a user
-/// POST /transactions               — create a new transaction
+/// GET  /transactions — list transactions for the authenticated user
+/// POST /transactions — create a new transaction
 Future<Response> onRequest(RequestContext context) async {
   switch (context.request.method) {
     case HttpMethod.get:
@@ -23,14 +23,7 @@ Future<Response> onRequest(RequestContext context) async {
 }
 
 Future<Response> _getTransactions(RequestContext context) async {
-  final userId = context.request.uri.queryParameters['user_id'];
-  if (userId == null || userId.isEmpty) {
-    return Response.json(
-      statusCode: 400,
-      body: {'error': 'user_id query parameter is required'},
-    );
-  }
-
+  final userId = context.read<String>();
   final connection = await context.read<Future<Connection>>();
   final repo = TransactionRepository(connection);
   final transactions = await repo.getTransactions(userId);
@@ -41,22 +34,18 @@ Future<Response> _getTransactions(RequestContext context) async {
 }
 
 Future<Response> _createTransaction(RequestContext context) async {
+  final userId = context.read<String>();
   final body = await context.request.json() as Map<String, dynamic>;
 
-  final userId = body['user_id'] as String?;
   final accountId = body['account_id'] as String?;
   final amount = (body['amount'] as num?)?.toDouble();
   final transactionDate = body['transaction_date'] as String?;
 
-  if (userId == null ||
-      accountId == null ||
-      amount == null ||
-      transactionDate == null) {
+  if (accountId == null || amount == null || transactionDate == null) {
     return Response.json(
       statusCode: 400,
       body: {
-        'error':
-            'user_id, account_id, amount and transaction_date are required',
+        'error': 'account_id, amount and transaction_date are required',
       },
     );
   }

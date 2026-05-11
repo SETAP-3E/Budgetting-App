@@ -4,8 +4,8 @@ import 'package:budgetting_backend/repositories/account_repository.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:postgres/postgres.dart';
 
-/// GET  /accounts?user_id=...  — list accounts for a user
-/// POST /accounts              — create a new account
+/// GET  /accounts  — list accounts for the authenticated user
+/// POST /accounts  — create a new account
 Future<Response> onRequest(RequestContext context) async {
   switch (context.request.method) {
     case HttpMethod.get:
@@ -22,35 +22,24 @@ Future<Response> onRequest(RequestContext context) async {
 }
 
 Future<Response> _getAccounts(RequestContext context) async {
-  final userId = context.request.uri.queryParameters['user_id'];
-  if (userId == null || userId.isEmpty) {
-    return Response.json(
-      statusCode: 400,
-      body: {'error': 'user_id query parameter is required'},
-    );
-  }
-
+  final userId = context.read<String>();
   final connection = await context.read<Future<Connection>>();
   final repo = AccountRepository(connection);
   final accounts = await repo.getAccounts(userId);
-
-  return Response.json(
-    body: accounts.map((a) => a.toJson()).toList(),
-  );
+  return Response.json(body: accounts.map((a) => a.toJson()).toList());
 }
 
 Future<Response> _createAccount(RequestContext context) async {
+  final userId = context.read<String>();
   final body = await context.request.json() as Map<String, dynamic>;
 
-  final userId = body['user_id'] as String?;
   final name = body['name'] as String?;
   final accountType = body['account_type'] as String?;
   final balance = (body['balance'] as num?)?.toDouble();
   final monthlyBudget = (body['monthly_budget'] as num?)?.toDouble();
   final accentColor = body['accent_color'] as int?;
 
-  if (userId == null ||
-      name == null ||
+  if (name == null ||
       accountType == null ||
       balance == null ||
       monthlyBudget == null ||
@@ -59,8 +48,8 @@ Future<Response> _createAccount(RequestContext context) async {
       statusCode: 400,
       body: {
         'error':
-            'user_id, name, account_type, balance, '
-            'monthly_budget and accent_color are required',
+            'name, account_type, balance, monthly_budget and accent_color '
+            'are required',
       },
     );
   }
