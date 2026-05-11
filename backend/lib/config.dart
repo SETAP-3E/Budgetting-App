@@ -36,4 +36,7 @@ class Config {
 
   /// Google Places API key (server-side). Never sent to the browser.
   static String? get placesApiKey => _env['GOOGLE_PLACES_API_KEY'];
+
+  /// Secret used to sign and verify JWTs. Must be set in production.
+  static String get jwtSecret => _env['JWT_SECRET'] ?? 'changeme';
 }

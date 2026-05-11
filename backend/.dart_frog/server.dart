@@ -13,6 +13,8 @@ import '../routes/places/details.dart' as places_details;
 import '../routes/places/autocomplete.dart' as places_autocomplete;
 import '../routes/categories/index.dart' as categories_index;
 import '../routes/budgets/index.dart' as budgets_index;
+import '../routes/auth/signup.dart' as auth_signup;
+import '../routes/auth/login.dart' as auth_login;
 import '../routes/accounts/index.dart' as accounts_index;
 
 import '../routes/_middleware.dart' as middleware;
@@ -36,6 +38,7 @@ Handler buildRootHandler() {
     ..mount('/places', (context) => buildPlacesHandler()(context))
     ..mount('/categories', (context) => buildCategoriesHandler()(context))
     ..mount('/budgets', (context) => buildBudgetsHandler()(context))
+    ..mount('/auth', (context) => buildAuthHandler()(context))
     ..mount('/accounts', (context) => buildAccountsHandler()(context));
   return pipeline.addHandler(router);
 }
@@ -72,6 +75,13 @@ Handler buildBudgetsHandler() {
   final pipeline = const Pipeline();
   final router = Router()
     ..all('/', (context) => budgets_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildAuthHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/login', (context) => auth_login.onRequest(context,))..all('/signup', (context) => auth_signup.onRequest(context,));
   return pipeline.addHandler(router);
 }
 
