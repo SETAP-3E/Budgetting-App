@@ -11,13 +11,15 @@ VALUES
     (gen_random_uuid(), NULL, 'Transport',     'directions_car',      4285532778, TRUE)
 ON CONFLICT DO NOTHING;
 
--- Dev user (fixed UUID used by the frontend until real auth is implemented).
-INSERT INTO users (id, email, password_hash, display_name)
+-- Dev user (fixed UUID, username=devuser, password=devpassword).
+-- Hash is bcrypt of 'devpassword' with cost 12.
+INSERT INTO users (id, email, password_hash, display_name, username)
 VALUES (
     '00000000-0000-0000-0000-000000000001',
     'dev@example.com',
-    '$2a$12$placeholder_hash_not_for_login',
-    'Dev User'
+    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/HS.i1oS',
+    'Dev User',
+    'devuser'
 ) ON CONFLICT DO NOTHING;
 
 -- Dev accounts for the dev user (IDs mirrored in MockAccountsDatasource).

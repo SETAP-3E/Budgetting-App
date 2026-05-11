@@ -8,6 +8,7 @@
 --   psql $DATABASE_URL -f database/migrations/0004_create_monthly_balances.sql
 --   psql $DATABASE_URL -f database/migrations/0005_create_transactions.sql
 --   psql $DATABASE_URL -f database/migrations/0006_create_budgets.sql
+--   psql $DATABASE_URL -f database/migrations/0008_add_username_to_users.sql
 --   psql $DATABASE_URL -f database/seeds/dev_seed.sql
 
 -- ============================================================
@@ -15,17 +16,21 @@
 -- ============================================================
 CREATE TABLE users (
     id             UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    email          TEXT         NOT NULL,
+    email          TEXT,
     password_hash  TEXT         NOT NULL,
     display_name   TEXT         NOT NULL
                                 CONSTRAINT users_display_name_length
                                     CHECK (char_length(display_name) BETWEEN 1 AND 60),
+    username       TEXT         NOT NULL
+                                CONSTRAINT users_username_length
+                                    CHECK (char_length(username) BETWEEN 3 AND 30),
     is_simple_view BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at     TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at     TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
-CREATE UNIQUE INDEX users_email_idx ON users (lower(email));
+CREATE UNIQUE INDEX users_email_idx ON users (lower(email)) WHERE email IS NOT NULL;
+CREATE UNIQUE INDEX users_username_idx ON users (lower(username));
 
 -- ============================================================
 -- TABLE: accounts
