@@ -16,11 +16,13 @@ TransactionModel _txn({
   required DateTime date,
   String? location,
   String accountId = '00000000-0000-0000-0000-000000000002',
+  String categoryId = '00000000-0000-0000-0000-000000000010',
   String? accountName = 'Main Current Account',
 }) =>
     TransactionModel(
       id: id,
       accountId: accountId,
+      categoryId: categoryId,
       accountName: accountName,
       amount: amount,
       categoryName: categoryName,

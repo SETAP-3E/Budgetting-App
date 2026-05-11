@@ -43,6 +43,7 @@ class TransactionsApiClient {
       return TransactionModel(
         id: json['id'] as String,
         accountId: json['account_id'] as String,
+        categoryId: json['category_id'] as String,
         accountName: json['account_name'] as String?,
         amount: (json['amount'] as num).toDouble(),
         categoryName: json['category_name'] as String,
@@ -83,6 +84,43 @@ class TransactionsApiClient {
         if (latitude != null && longitude != null) 'latitude': latitude,
         if (latitude != null && longitude != null) 'longitude': longitude,
       },
+    );
+  }
+
+  /// Updates an existing transaction.
+  Future<void> updateTransaction({
+    required String id,
+    required double amount,
+    required String transactionDate,
+    required String accountId,
+    String? categoryId,
+    String? newCategoryName,
+    String? description,
+    double? latitude,
+    double? longitude,
+  }) async {
+    await _dio.put<void>(
+      '/transactions/$id',
+      data: {
+        'user_id': devUserId,
+        'account_id': accountId,
+        if (categoryId != null) 'category_id': categoryId,
+        if (newCategoryName != null) 'new_category_name': newCategoryName,
+        'amount': amount,
+        if (description != null && description.isNotEmpty)
+          'description': description,
+        'transaction_date': transactionDate,
+        if (latitude != null && longitude != null) 'latitude': latitude,
+        if (latitude != null && longitude != null) 'longitude': longitude,
+      },
+    );
+  }
+
+  /// Deletes a transaction by [id].
+  Future<void> deleteTransaction(String id) async {
+    await _dio.delete<void>(
+      '/transactions/$id',
+      queryParameters: {'user_id': devUserId},
     );
   }
 

@@ -4,6 +4,7 @@ class TransactionModel {
   const TransactionModel({
     required this.id,
     required this.accountId,
+    required this.categoryId,
     required this.amount,
     required this.categoryName,
     required this.date,
@@ -18,6 +19,9 @@ class TransactionModel {
 
   /// ID of the account this transaction was paid from.
   final String accountId;
+
+  /// ID of the spending category.
+  final String categoryId;
 
   /// Human-readable account name (from JOIN), null if account deleted.
   final String? accountName;

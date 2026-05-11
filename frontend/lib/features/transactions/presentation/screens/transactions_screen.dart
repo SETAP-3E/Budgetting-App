@@ -7,6 +7,7 @@ import 'package:budgetting_frontend/features/transactions/presentation/bloc/tran
 import 'package:budgetting_frontend/features/transactions/presentation/bloc/transactions_event.dart';
 import 'package:budgetting_frontend/features/transactions/presentation/bloc/transactions_state.dart';
 import 'package:budgetting_frontend/features/transactions/presentation/widgets/add_expense_sheet.dart';
+import 'package:budgetting_frontend/features/transactions/presentation/widgets/edit_expense_sheet.dart';
 import 'package:budgetting_frontend/features/transactions/presentation/widgets/transactions_filter_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -40,6 +41,23 @@ class _TransactionsView extends StatelessWidget {
       builder: (_) => const AddExpenseSheet(),
     ).then((_) {
       if (context.mounted) {
+        context
+            .read<TransactionsBloc>()
+            .add(const TransactionsRefreshRequested());
+      }
+    });
+  }
+
+  void _openEditSheet(BuildContext context, TransactionModel transaction) {
+    showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => EditExpenseSheet(transaction: transaction),
+    ).then((changed) {
+      if ((changed ?? false) && context.mounted) {
         context
             .read<TransactionsBloc>()
             .add(const TransactionsRefreshRequested());
@@ -164,6 +182,10 @@ class _TransactionsView extends StatelessWidget {
                               const Divider(height: 1),
                           itemBuilder: (context, index) => _TransactionTile(
                             transaction: state.pageTransactions[index],
+                            onTap: () => _openEditSheet(
+                              context,
+                              state.pageTransactions[index],
+                            ),
                           ),
                         ),
                       ),
@@ -540,9 +562,10 @@ class _PaginationBar extends StatelessWidget {
 
 /// A single row in the transactions list.
 class _TransactionTile extends StatelessWidget {
-  const _TransactionTile({required this.transaction});
+  const _TransactionTile({required this.transaction, this.onTap});
 
   final TransactionModel transaction;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -556,6 +579,7 @@ class _TransactionTile extends StatelessWidget {
     ];
 
     return ListTile(
+      onTap: onTap,
       leading: CircleAvatar(
         backgroundColor:
             Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),

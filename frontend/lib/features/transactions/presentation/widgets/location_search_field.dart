@@ -20,6 +20,7 @@ class LocationSearchField extends StatefulWidget {
   const LocationSearchField({
     required this.onPlaceSelected,
     this.onCleared,
+    this.initialValue,
     super.key,
   });
 
@@ -28,6 +29,9 @@ class LocationSearchField extends StatefulWidget {
 
   /// Called when the user edits the field after a place was already selected.
   final VoidCallback? onCleared;
+
+  /// Pre-fills the field with an existing location name (e.g. when editing).
+  final String? initialValue;
 
   @override
   State<LocationSearchField> createState() => _LocationSearchFieldState();
@@ -43,6 +47,15 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
 
   /// True while the field contains a resolved place name — suppresses search.
   bool _placeSelected = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialValue != null && widget.initialValue!.isNotEmpty) {
+      _controller.text = widget.initialValue!;
+      _placeSelected = true;
+    }
+  }
 
   @override
   void dispose() {
