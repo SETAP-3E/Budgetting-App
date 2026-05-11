@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 
 /// Displays individual budget information with spending progress.
@@ -12,6 +13,7 @@ class BudgetCard extends StatelessWidget {
     required this.spentAmount,
     required this.percentage,
     this.categoryColour = 0xFFFF9800,
+    this.onEditLimit,
     super.key,
   });
 
@@ -33,10 +35,13 @@ class BudgetCard extends StatelessWidget {
   /// Color associated with this category (as integer).
   final int categoryColour;
 
+  /// Optional callback to edit this category's budget limit.
+  final VoidCallback? onEditLimit;
+
   @override
   Widget build(BuildContext context) {
     final isOverBudget = percentage > 100;
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -75,14 +80,14 @@ class BudgetCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '£${spentAmount.toStringAsFixed(2)}',
+                        formatCurrency(spentAmount),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: isOverBudget ? Colors.red : null,
                             ),
                       ),
                       Text(
-                        ' / £${allocatedAmount.toStringAsFixed(2)}',
+                        ' / ${formatCurrency(allocatedAmount)}',
                         style: Theme.of(context).textTheme.labelSmall,
                       ),
                     ],
@@ -104,13 +109,23 @@ class BudgetCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            // Percentage text
-            Text(
-              '${percentage.toInt()}%',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isOverBudget ? Colors.red : null,
-                  ),
+            // Percentage and edit action
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${percentage.toInt()}%',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isOverBudget ? Colors.red : null,
+                      ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 20),
+                  tooltip: 'Edit budget limit',
+                  onPressed: onEditLimit,
+                ),
+              ],
             ),
           ],
         ),
