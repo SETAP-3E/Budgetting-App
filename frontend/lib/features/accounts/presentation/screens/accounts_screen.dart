@@ -113,23 +113,25 @@ class _AccountsView extends StatelessWidget {
                   _buildAccountSection(context, state);
 
               if (isWide) {
-                return Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          children: [
-                            overviewCard,
-                            const SizedBox(height: 12),
-                            quickActions,
-                          ],
+                return SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            children: [
+                              overviewCard,
+                              const SizedBox(height: 12),
+                              quickActions,
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(flex: 2, child: accountSection),
-                    ],
+                        const SizedBox(width: 16),
+                        Expanded(flex: 2, child: accountSection),
+                      ],
+                    ),
                   ),
                 );
               }
