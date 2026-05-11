@@ -1,11 +1,11 @@
-import 'package:budgetting_frontend/features/budgets/data/budgets_api_client.dart';
-import 'package:budgetting_frontend/features/budgets/domain/models/budget_models.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/category_card.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/metric_card.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/spending_chart.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/top_category_alert.dart';
+import 'package:budgetting_frontend/features/transactions/data/datasources/transactions_api_client.dart';
+import 'package:budgetting_frontend/features/transactions/domain/models/transaction_model.dart';
 import 'package:budgetting_frontend/features/transactions/presentation/widgets/add_expense_sheet.dart';
 import 'package:flutter/material.dart';
 
@@ -22,11 +22,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _selectedPeriod = 'this_month';
   bool _isSimpleView = true;
 
-  final _apiClient = BudgetsApiClient();
+  final _txnClient = TransactionsApiClient();
   bool _isLoading = false;
   String? _error;
-  BudgetSummaryModel? _summary;
-  BudgetSummaryModel? _previousSummary;
+  bool _hasLoadedOnce = false;
+
+  List<TransactionModel> _allTransactions = [];
+  Map<String, int> _colourByCategory = {};
+
+  // Derived by _applyPeriod()
+  List<Map<String, dynamic>> _currentPeriodData = [];
+  Map<String, double> _previousByCategory = {};
+  double _totalSpent = 0;
+  String _periodMonth = '';
+  int _periodYear = 0;
 
   @override
   void initState() {
@@ -40,43 +49,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _error = null;
     });
 
-    final now = DateTime.now();
-    int currentYear;
-    int? currentMonth;
-    int prevYear;
-    int? prevMonth;
-
-    switch (_selectedPeriod) {
-      case 'last_month':
-        currentMonth = now.month == 1 ? 12 : now.month - 1;
-        currentYear = now.month == 1 ? now.year - 1 : now.year;
-        prevMonth = currentMonth == 1 ? 12 : currentMonth - 1;
-        prevYear = currentMonth == 1 ? currentYear - 1 : currentYear;
-      case 'this_year':
-        currentYear = now.year;
-        currentMonth = null;
-        prevYear = now.year - 1;
-        prevMonth = null;
-      default: // 'this_month'
-        currentYear = now.year;
-        currentMonth = now.month;
-        prevMonth = now.month == 1 ? 12 : now.month - 1;
-        prevYear = now.month == 1 ? now.year - 1 : now.year;
-    }
-
     try {
-      final results = await Future.wait([
-        _apiClient.getBudgets(year: currentYear, month: currentMonth),
-        _apiClient.getBudgets(year: prevYear, month: prevMonth),
-      ]);
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _summary = results[0];
-          _previousSummary = results[1];
-        });
+      final txnFuture = _txnClient.getTransactions();
+      final catFuture = _txnClient.getCategories();
+      final txns = await txnFuture;
+      final cats = await catFuture;
+
+      final colourMap = <String, int>{};
+      for (final cat in cats) {
+        final name = cat['name'] as String?;
+        final colour = cat['colour_value'] as int?;
+        if (name != null && colour != null) colourMap[name] = colour;
       }
-    } catch (e) {
+
+      if (mounted) {
+        _allTransactions = txns;
+        _colourByCategory = colourMap;
+        _isLoading = false;
+        _hasLoadedOnce = true;
+        _applyPeriod();
+      }
+    } catch (_) {
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -84,6 +77,85 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
       }
     }
+  }
+
+  void _applyPeriod() {
+    final now = DateTime.now();
+    int curYear;
+    int? curMonth;
+    int prevYear;
+    int? prevMonth;
+    String monthLabel;
+    int yearLabel;
+
+    switch (_selectedPeriod) {
+      case 'last_month':
+        curMonth = now.month == 1 ? 12 : now.month - 1;
+        curYear = now.month == 1 ? now.year - 1 : now.year;
+        prevMonth = curMonth == 1 ? 12 : curMonth - 1;
+        prevYear = curMonth == 1 ? curYear - 1 : curYear;
+        monthLabel = _monthName(curMonth);
+        yearLabel = curYear;
+      case 'this_year':
+        curYear = now.year;
+        curMonth = null;
+        prevYear = now.year - 1;
+        prevMonth = null;
+        monthLabel = '';
+        yearLabel = now.year;
+      default: // 'this_month'
+        curYear = now.year;
+        curMonth = now.month;
+        prevMonth = now.month == 1 ? 12 : now.month - 1;
+        prevYear = now.month == 1 ? now.year - 1 : now.year;
+        monthLabel = _monthName(now.month);
+        yearLabel = now.year;
+    }
+
+    final curTxns = _allTransactions.where((t) {
+      if (t.date.year != curYear) return false;
+      if (curMonth != null && t.date.month != curMonth) return false;
+      return true;
+    }).toList();
+
+    final prevTxns = _allTransactions.where((t) {
+      if (t.date.year != prevYear) return false;
+      if (prevMonth != null && t.date.month != prevMonth) return false;
+      return true;
+    }).toList();
+
+    final curTotals = <String, double>{};
+    for (final t in curTxns) {
+      curTotals[t.categoryName] = (curTotals[t.categoryName] ?? 0) + t.amount;
+    }
+
+    final prevTotals = <String, double>{};
+    for (final t in prevTxns) {
+      prevTotals[t.categoryName] =
+          (prevTotals[t.categoryName] ?? 0) + t.amount;
+    }
+
+    final totalCurrent = curTotals.values.fold<double>(0, (a, b) => a + b);
+    final sorted = curTotals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    setState(() {
+      _currentPeriodData = sorted
+          .map(
+            (e) => <String, dynamic>{
+              'name': e.key,
+              'amount': e.value,
+              'percentage':
+                  totalCurrent > 0 ? e.value / totalCurrent * 100 : 0.0,
+              'colour': _colourByCategory[e.key] ?? 0xFF9E9E9E,
+            },
+          )
+          .toList();
+      _previousByCategory = prevTotals;
+      _totalSpent = totalCurrent;
+      _periodMonth = monthLabel;
+      _periodYear = yearLabel;
+    });
   }
 
   void _openAddExpenseSheet() {
@@ -101,12 +173,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _setPeriod(String period) {
     setState(() => _selectedPeriod = period);
-    _loadData();
+    if (_hasLoadedOnce) _applyPeriod();
   }
 
   void _toggleViewMode(Set<bool> selected) {
     setState(() => _isSimpleView = selected.first);
   }
+
+  static String _monthName(int month) => const [
+        '',
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+      ][month];
 
   @override
   Widget build(BuildContext context) {
@@ -118,11 +206,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildBody(BuildContext context) {
-    if (_isLoading && _summary == null) {
+    if (_isLoading && !_hasLoadedOnce) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_error != null && _summary == null) {
+    if (_error != null && !_hasLoadedOnce) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -141,8 +229,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    final summary = _summary!;
-
     return RefreshIndicator(
       onRefresh: _loadData,
       child: SingleChildScrollView(
@@ -153,15 +239,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               MetricCard(
-                totalSpending: summary.totalSpent,
-                month: summary.monthName,
-                year: summary.year,
-                goalAmount: summary.totalGoal > 0 ? summary.totalGoal : null,
+                totalSpending: _totalSpent,
+                month: _periodMonth,
+                year: _periodYear,
                 onAddSpending: _openAddExpenseSheet,
               ),
               const SizedBox(height: 16),
-              if (summary.budgets.isNotEmpty) ...[
-                _buildTopCategoryAlert(summary),
+              if (_currentPeriodData.isNotEmpty) ...[
+                _buildTopCategoryAlert(),
                 const SizedBox(height: 16),
               ],
               // Period selector
@@ -209,12 +294,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              if (summary.budgets.isEmpty)
+              if (_currentPeriodData.isEmpty)
                 _buildEmptyState(context)
               else ...[
-                _buildSpendingChart(summary),
+                _buildSpendingChart(),
                 const SizedBox(height: 16),
-                _buildCategoryList(summary),
+                _buildCategoryList(),
               ],
               const SizedBox(height: 8),
             ],
@@ -224,56 +309,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildTopCategoryAlert(BudgetSummaryModel summary) {
-    // Top category = highest spender in the current period.
-    final sorted = [...summary.budgets]
-      ..sort((a, b) => b.spentAmount.compareTo(a.spentAmount));
-    final top = sorted.first;
-
-    final totalSpent = summary.totalSpent;
-    final percentage =
-        totalSpent > 0 ? top.spentAmount / totalSpent * 100 : 0.0;
-
-    // Find same category in previous period for comparison arrow.
-    final prevItem = _previousSummary?.budgets
-        .where((b) => b.name == top.name)
-        .firstOrNull;
-    final previousAmount = prevItem?.spentAmount ?? 0.0;
+  Widget _buildTopCategoryAlert() {
+    final top = _currentPeriodData.first;
+    final previousAmount =
+        _previousByCategory[top['name'] as String] ?? 0.0;
 
     return TopCategoryAlert(
-      categoryName: top.name,
-      currentAmount: top.spentAmount,
+      categoryName: top['name'] as String,
+      currentAmount: top['amount'] as double,
       previousAmount: previousAmount,
-      percentage: percentage,
-      categoryColour: top.colourValue,
+      percentage: top['percentage'] as double,
+      categoryColour: top['colour'] as int,
     );
   }
 
-  Widget _buildSpendingChart(BudgetSummaryModel summary) {
-    final totalSpent = summary.totalSpent;
-    final chartCategories = summary.budgets
-        .map(
-          (b) => {
-            'name': b.name,
-            'amount': b.spentAmount,
-            'percentage': totalSpent > 0
-                ? b.spentAmount / totalSpent * 100
-                : 0.0,
-            'colour': b.colourValue,
-          },
-        )
-        .toList();
-
+  Widget _buildSpendingChart() {
     return SpendingChart(
-      categories: chartCategories,
+      categories: _currentPeriodData,
       isSimpleView: _isSimpleView,
     );
   }
 
-  Widget _buildCategoryList(BudgetSummaryModel summary) {
+  Widget _buildCategoryList() {
     if (_isSimpleView) return const SizedBox.shrink();
 
-    final totalSpent = summary.totalSpent;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -282,15 +341,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        ...summary.budgets.asMap().entries.map(
+        ..._currentPeriodData.asMap().entries.map(
               (entry) => CategoryCard(
                 rank: entry.key + 1,
-                categoryName: entry.value.name,
-                amount: entry.value.spentAmount,
-                percentage: totalSpent > 0
-                    ? entry.value.spentAmount / totalSpent * 100
-                    : 0.0,
-                categoryColour: entry.value.colourValue,
+                categoryName: entry.value['name'] as String,
+                amount: entry.value['amount'] as double,
+                percentage: entry.value['percentage'] as double,
+                categoryColour: entry.value['colour'] as int,
               ),
             ),
       ],
@@ -315,14 +372,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Set budget goals to see your dashboard.',
+              'Add an expense to get started.',
               style: Theme.of(context).textTheme.bodySmall,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pushNamed('/budgets'),
-              child: const Text('Go to Budgets'),
+            FilledButton(
+              onPressed: _openAddExpenseSheet,
+              child: const Text('Add Expense'),
             ),
           ],
         ),
