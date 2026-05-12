@@ -6,7 +6,6 @@ import 'package:budgetting_frontend/features/accounts/domain/models/account_mode
 import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts_bloc.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts_event.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts_state.dart';
-import 'package:budgetting_frontend/features/accounts/presentation/screens/account_detail_screen.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/widgets/account_list_card.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/widgets/accounts_overview_card.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/widgets/add_account_sheet.dart';
@@ -16,6 +15,7 @@ import 'package:budgetting_frontend/features/transactions/data/datasources/trans
 import 'package:budgetting_frontend/features/transactions/domain/models/transaction_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:web/web.dart' as web;
 
@@ -59,11 +59,7 @@ class _AccountsView extends StatelessWidget {
   }
 
   void _openAccountDetail(BuildContext context, AccountModel account) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => AccountDetailScreen(account: account),
-      ),
-    );
+    context.go('/accounts/${account.id}', extra: account);
   }
 
   Future<void> _exportTransactions(BuildContext context) async {

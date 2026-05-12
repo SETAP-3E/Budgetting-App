@@ -1,4 +1,6 @@
 import 'package:budgetting_frontend/core/auth/auth_notifier.dart';
+import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
+import 'package:budgetting_frontend/features/accounts/presentation/screens/account_detail_screen.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/screens/accounts_screen.dart';
 import 'package:budgetting_frontend/features/auth/presentation/screens/login_screen.dart';
 import 'package:budgetting_frontend/features/auth/presentation/screens/signup_screen.dart';
@@ -43,6 +45,15 @@ final appRouter = GoRouter(
       path: '/accounts',
       name: 'accounts',
       builder: (context, state) => const AccountsScreen(),
+      routes: [
+        GoRoute(
+          path: ':accountId',
+          name: 'account-detail',
+          builder: (context, state) => AccountDetailScreen(
+            account: state.extra! as AccountModel,
+          ),
+        ),
+      ],
     ),
     GoRoute(
       path: '/transactions',
