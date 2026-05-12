@@ -6,6 +6,7 @@ class CategoryItem {
     required this.name,
     required this.icon,
     required this.colourValue,
+    required this.isPredefined,
   });
 
   /// Deserialise from the API response.
@@ -14,6 +15,7 @@ class CategoryItem {
         name: json['name'] as String,
         icon: json['icon'] as String,
         colourValue: json['colour_value'] as int,
+        isPredefined: json['is_predefined'] as bool? ?? false,
       );
 
   /// Unique category identifier.
@@ -27,6 +29,9 @@ class CategoryItem {
 
   /// Flutter ARGB colour integer.
   final int colourValue;
+
+  /// Whether this is a system-defined category (cannot be edited or deleted).
+  final bool isPredefined;
 }
 
 /// One week's spending within a monthly period.

@@ -24,31 +24,48 @@ class CategoryRepository {
     return result.map(CategoryModel.fromRow).toList();
   }
 
+  /// Updates the name and/or colour of a custom category owned by [userId].
+  ///
+  /// Returns the updated model, or null if not found or predefined.
+  Future<CategoryModel?> updateCategory(
+    String userId,
+    String categoryId, {
+    required String name,
+    required int colourValue,
+  }) async {
+    final result = await connection.execute(
+      Sql.named(
+        'UPDATE categories '
+        'SET name = @name, colour_value = @colourValue, updated_at = now() '
+        'WHERE id = @id AND user_id = @userId AND is_predefined = FALSE '
+        'RETURNING id, name, icon, colour_value, is_predefined',
+      ),
+      parameters: {
+        'id': categoryId,
+        'userId': userId,
+        'name': name,
+        'colourValue': colourValue,
+      },
+    );
+    if (result.isEmpty) return null;
+    return CategoryModel.fromRow(result.first);
+  }
+
   /// Returns an existing custom category by name for [userId], or creates one.
+  ///
+  /// Uses an atomic upsert so concurrent requests for the same name never
+  /// race to a duplicate-key error.
   Future<CategoryModel> findOrCreateCustom(
     String userId,
     String name,
   ) async {
-    // Try to find existing custom category with this name.
-    final existing = await connection.execute(
-      Sql.named(
-        'SELECT id, name, icon, colour_value, is_predefined '
-        'FROM categories '
-        'WHERE user_id = @userId AND name = @name AND is_active = TRUE',
-      ),
-      parameters: {'userId': userId, 'name': name},
-    );
-
-    if (existing.isNotEmpty) {
-      return CategoryModel.fromRow(existing.first);
-    }
-
-    // Create a new custom category.
-    final inserted = await connection.execute(
+    final result = await connection.execute(
       Sql.named(
         'INSERT INTO categories (user_id, name, icon, colour_value, '
-        'is_predefined) '
+        '  is_predefined) '
         'VALUES (@userId, @name, @icon, @colourValue, FALSE) '
+        'ON CONFLICT ON CONSTRAINT categories_unique_name_per_scope '
+        'DO UPDATE SET updated_at = now() '
         'RETURNING id, name, icon, colour_value, is_predefined',
       ),
       parameters: {
@@ -58,7 +75,6 @@ class CategoryRepository {
         'colourValue': 4294945792, // accentOrange
       },
     );
-
-    return CategoryModel.fromRow(inserted.first);
+    return CategoryModel.fromRow(result.first);
   }
 }
