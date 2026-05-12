@@ -1,10 +1,12 @@
 import 'package:budgetting_frontend/core/utils/colour_utils.dart';
+import 'package:budgetting_frontend/features/budgets/data/budgets_api_client.dart';
 import 'package:budgetting_frontend/features/budgets/domain/models/budget_models.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_alert_card.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_card.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_chart.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_summary_card.dart';
+import 'package:budgetting_frontend/features/budgets/presentation/widgets/manage_categories_sheet.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/set_budget_sheet.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/weekly_budget_chart.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
@@ -53,6 +55,54 @@ class _BudgetsViewState extends State<_BudgetsView> {
       context
           .read<BudgetsBloc>()
           .add(BudgetsLoadRequested(year: year, month: month));
+    }
+  }
+
+  Future<void> _deleteBudget(
+    BuildContext context,
+    int year,
+    int month,
+    BudgetItemModel budget,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete budget'),
+        content: Text(
+          'Remove the ${budget.name} budget for this month?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if ((confirmed ?? false) && context.mounted) {
+      try {
+        await BudgetsApiClient().deleteBudget(
+          categoryId: budget.categoryId,
+          year: year,
+          month: month,
+        );
+        if (context.mounted) {
+          context.read<BudgetsBloc>().add(
+                BudgetsLoadRequested(year: year, month: month),
+              );
+        }
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to delete budget.')),
+          );
+        }
+      }
     }
   }
 
@@ -156,6 +206,12 @@ class _BudgetsViewState extends State<_BudgetsView> {
                 _CategorySection(
                   summary: state.summary!,
                   onEdit: (BudgetItemModel b) => _openEditBudgetSheet(
+                    context,
+                    state.selectedYear,
+                    state.selectedMonth,
+                    b,
+                  ),
+                  onDelete: (BudgetItemModel b) => _deleteBudget(
                     context,
                     state.selectedYear,
                     state.selectedMonth,
@@ -328,9 +384,11 @@ class _CategorySection extends StatelessWidget {
   const _CategorySection({
     required this.summary,
     this.onEdit,
+    this.onDelete,
   });
   final BudgetSummaryModel summary;
   final void Function(BudgetItemModel)? onEdit;
+  final void Function(BudgetItemModel)? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -363,6 +421,19 @@ class _CategorySection extends StatelessWidget {
                     ?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
+            TextButton.icon(
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (_) => const ManageCategoriesSheet(),
+              ),
+              icon: const Icon(Icons.tune, size: 16),
+              label: const Text('Manage'),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -381,6 +452,7 @@ class _CategorySection extends StatelessWidget {
             percentage: b.percentage,
             categoryColour: chartCategories[i]['colour'] as int,
             onEditLimit: onEdit != null ? () => onEdit!(b) : null,
+            onDelete: onDelete != null ? () => onDelete!(b) : null,
           );
         }),
       ],

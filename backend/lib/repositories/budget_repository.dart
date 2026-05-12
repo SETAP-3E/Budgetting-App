@@ -84,6 +84,32 @@ class BudgetRepository {
     return result.map(BudgetItemModel.fromRow).toList();
   }
 
+  /// Deletes the budget goal for [categoryId] in [year]/[month].
+  ///
+  /// Returns true if a row was deleted, false if not found.
+  Future<bool> deleteBudget({
+    required String userId,
+    required String categoryId,
+    required int year,
+    required int month,
+  }) async {
+    final result = await connection.execute(
+      Sql.named(
+        'DELETE FROM budgets '
+        'WHERE user_id = @userId AND category_id = @categoryId '
+        '  AND period_year = @year AND period_month = @month '
+        'RETURNING id',
+      ),
+      parameters: {
+        'userId': userId,
+        'categoryId': categoryId,
+        'year': year,
+        'month': month,
+      },
+    );
+    return result.isNotEmpty;
+  }
+
   /// Creates or updates a budget goal for [categoryId] in [year]/[month].
   Future<void> upsertBudget({
     required String userId,

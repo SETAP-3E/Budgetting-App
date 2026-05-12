@@ -5,8 +5,9 @@ import 'package:budgetting_backend/repositories/budget_repository.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:postgres/postgres.dart';
 
-/// GET  /budgets?year=...&month=... — budget summary for the authenticated user.
-/// POST /budgets — create or update a category budget goal.
+/// GET    /budgets?year=...&month=... — budget summary for the authenticated user.
+/// POST   /budgets — create or update a category budget goal.
+/// DELETE /budgets?category_id=...&year=...&month=... — remove a budget goal.
 Future<Response> onRequest(RequestContext context) async {
   switch (context.request.method) {
     case HttpMethod.get:
@@ -14,12 +15,47 @@ Future<Response> onRequest(RequestContext context) async {
     case HttpMethod.post:
       return _upsertBudget(context);
     case HttpMethod.delete:
+      return _deleteBudget(context);
     case HttpMethod.head:
     case HttpMethod.options:
     case HttpMethod.patch:
     case HttpMethod.put:
       return Response(statusCode: HttpStatus.methodNotAllowed);
   }
+}
+
+Future<Response> _deleteBudget(RequestContext context) async {
+  final userId = context.read<String>();
+  final params = context.request.uri.queryParameters;
+  final categoryId = params['category_id'];
+  final year = int.tryParse(params['year'] ?? '');
+  final month = int.tryParse(params['month'] ?? '');
+
+  if (categoryId == null || year == null || month == null) {
+    return Response.json(
+      statusCode: 400,
+      body: {
+        'error': 'category_id, year, and month query parameters are required',
+      },
+    );
+  }
+
+  final connection = await context.read<Future<Connection>>();
+  final repo = BudgetRepository(connection);
+  final deleted = await repo.deleteBudget(
+    userId: userId,
+    categoryId: categoryId,
+    year: year,
+    month: month,
+  );
+
+  if (!deleted) {
+    return Response.json(
+      statusCode: 404,
+      body: {'error': 'Budget not found'},
+    );
+  }
+  return Response(statusCode: HttpStatus.noContent);
 }
 
 Future<Response> _upsertBudget(RequestContext context) async {

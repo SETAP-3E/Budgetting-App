@@ -13,6 +13,7 @@ class BudgetCard extends StatelessWidget {
     required this.percentage,
     this.categoryColour = 0xFF32B5A0,
     this.onEditLimit,
+    this.onDelete,
     super.key,
   });
 
@@ -36,6 +37,9 @@ class BudgetCard extends StatelessWidget {
 
   /// Optional callback when the edit icon is tapped.
   final VoidCallback? onEditLimit;
+
+  /// Optional callback when the delete icon is tapped.
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -125,6 +129,18 @@ class BudgetCard extends StatelessWidget {
                     icon: const Icon(Icons.edit_outlined, size: 18),
                     tooltip: 'Edit limit',
                     onPressed: onEditLimit,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                if (onDelete != null)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: Colors.red,
+                    ),
+                    tooltip: 'Delete budget',
+                    onPressed: onDelete,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
