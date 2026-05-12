@@ -371,17 +371,18 @@ class _CategorySection extends StatelessWidget {
           isSimpleView: true,
         ),
         const SizedBox(height: 12),
-        ...summary.budgets.map(
-          (b) => BudgetCard(
+        ...List.generate(summary.budgets.length, (i) {
+          final b = summary.budgets[i];
+          return BudgetCard(
             rank: b.rank,
             categoryName: b.name,
             allocatedAmount: b.goalAmount,
             spentAmount: b.spentAmount,
             percentage: b.percentage,
-            categoryColour: b.colourValue,
+            categoryColour: chartCategories[i]['colour'] as int,
             onEditLimit: onEdit != null ? () => onEdit!(b) : null,
-          ),
-        ),
+          );
+        }),
       ],
     );
   }
