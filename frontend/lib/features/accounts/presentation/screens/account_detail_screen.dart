@@ -30,6 +30,9 @@ class _AccountDetailScreenState extends State<AccountDetailScreen> {
   List<AccountTransactionItem>? _transactions;
   bool _loading = true;
   String? _error;
+  int _txPage = 0;
+
+  static const _kPageSize = 5;
 
   @override
   void initState() {
@@ -69,7 +72,12 @@ class _AccountDetailScreenState extends State<AccountDetailScreen> {
             )
             .toList() ??
         [];
-    final recentFive = (_transactions ?? []).take(5).toList();
+    final allTxns = _transactions ?? [];
+    final totalPages = (allTxns.length / _kPageSize).ceil().clamp(1, 999);
+    final pageTxns = allTxns
+        .skip(_txPage * _kPageSize)
+        .take(_kPageSize)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -110,11 +118,19 @@ class _AccountDetailScreenState extends State<AccountDetailScreen> {
                           ),
                         ],
                         const SizedBox(height: 20),
-                        _sectionLabel(theme, 'Recent Transactions'),
+                        _sectionLabel(theme, 'Transactions'),
                         const SizedBox(height: 10),
                         _RecentTransactions(
-                          transactions: recentFive,
+                          transactions: pageTxns,
                           theme: theme,
+                          page: _txPage,
+                          totalPages: totalPages,
+                          onPrev: _txPage > 0
+                              ? () => setState(() => _txPage--)
+                              : null,
+                          onNext: _txPage < totalPages - 1
+                              ? () => setState(() => _txPage++)
+                              : null,
                         ),
                       ],
                     ),
@@ -319,10 +335,18 @@ class _RecentTransactions extends StatelessWidget {
   const _RecentTransactions({
     required this.transactions,
     required this.theme,
+    required this.page,
+    required this.totalPages,
+    required this.onPrev,
+    required this.onNext,
   });
 
   final List<AccountTransactionItem> transactions;
   final ThemeData theme;
+  final int page;
+  final int totalPages;
+  final VoidCallback? onPrev;
+  final VoidCallback? onNext;
 
   @override
   Widget build(BuildContext context) {
@@ -340,38 +364,68 @@ class _RecentTransactions extends StatelessWidget {
 
     return Card(
       child: Column(
-        children: transactions.map((tx) {
-          final isLast = tx == transactions.last;
-          return Column(
-            children: [
-              ListTile(
-                dense: true,
-                title: Text(
-                  tx.categoryName,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w500),
+        children: [
+          ...transactions.map((tx) {
+            final isLast = tx == transactions.last;
+            final subtitle = [
+              DateFormat('d MMM y').format(tx.date),
+              if (tx.location != null && tx.location!.isNotEmpty)
+                tx.location!,
+            ].join(' · ');
+            return Column(
+              children: [
+                ListTile(
+                  dense: true,
+                  title: Text(
+                    tx.categoryName,
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: Text(
+                    subtitle,
+                    style: theme.textTheme.labelSmall,
+                  ),
+                  trailing: Text(
+                    formatCurrency(tx.amount),
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
                 ),
-                subtitle: Text(
-                  DateFormat('d MMM y').format(tx.date),
-                  style: theme.textTheme.labelSmall,
-                ),
-                trailing: Text(
-                  formatCurrency(tx.amount),
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
+                if (!isLast)
+                  Divider(
+                    height: 1,
+                    indent: 16,
+                    endIndent: 16,
+                    color: theme.colorScheme.outlineVariant
+                        .withValues(alpha: 0.5),
+                  ),
+              ],
+            );
+          }),
+          if (totalPages > 1)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: onPrev,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  Text(
+                    '${page + 1} / $totalPages',
+                    style: theme.textTheme.labelSmall,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: onNext,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
               ),
-              if (!isLast)
-                Divider(
-                  height: 1,
-                  indent: 16,
-                  endIndent: 16,
-                  color: theme.colorScheme.outlineVariant
-                      .withValues(alpha: 0.5),
-                ),
-            ],
-          );
-        }).toList(),
+            ),
+        ],
       ),
     );
   }

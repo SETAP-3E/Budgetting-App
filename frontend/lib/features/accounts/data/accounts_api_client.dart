@@ -13,7 +13,7 @@ class AccountTransactionItem {
     required this.categoryName,
     required this.amount,
     required this.date,
-    this.description,
+    this.location,
   });
 
   /// Unique transaction identifier.
@@ -28,8 +28,8 @@ class AccountTransactionItem {
   /// Date the transaction occurred.
   final DateTime date;
 
-  /// Optional free-text description.
-  final String? description;
+  /// Place name entered when the transaction was recorded.
+  final String? location;
 }
 
 /// HTTP client for the accounts API endpoints.
@@ -89,7 +89,7 @@ class AccountsApiClient {
             categoryName: j['category_name'] as String,
             amount: (j['amount'] as num).toDouble(),
             date: DateTime.parse(j['transaction_date'] as String),
-            description: j['description'] as String?,
+            location: j['description'] as String?,
           ),
         )
         .toList();

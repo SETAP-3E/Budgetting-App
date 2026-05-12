@@ -1,3 +1,5 @@
+import 'dart:math' show pi;
+
 import 'package:budgetting_frontend/features/accounts/data/accounts_api_client.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -34,9 +36,6 @@ class _AccountSpendingChartState extends State<AccountSpendingChart> {
       ..sort((a, b) => b.value.compareTo(a.value));
     return sorted.take(6).toList();
   }
-
-  String _label(String name) =>
-      name.length > 7 ? '${name.substring(0, 7)}…' : name;
 
   @override
   Widget build(BuildContext context) {
@@ -95,19 +94,20 @@ class _AccountSpendingChartState extends State<AccountSpendingChart> {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 32,
-                        getTitlesWidget: (value, _) {
+                        reservedSize: 56,
+                        getTitlesWidget: (value, meta) {
                           final i = value.toInt();
                           if (i < 0 || i >= data.length) {
                             return const SizedBox.shrink();
                           }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 6),
+                          return SideTitleWidget(
+                            meta: meta,
+                            angle: -pi / 4,
+                            space: 4,
                             child: Text(
-                              _label(data[i].key),
+                              data[i].key,
                               style: theme.textTheme.labelSmall
                                   ?.copyWith(fontSize: 10),
-                              textAlign: TextAlign.center,
                             ),
                           );
                         },

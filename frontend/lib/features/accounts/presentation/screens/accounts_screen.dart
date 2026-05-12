@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/theme/app_theme.dart';
 import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:budgetting_frontend/features/accounts/data/accounts_api_client.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
@@ -6,7 +7,6 @@ import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts
 import 'package:budgetting_frontend/features/accounts/presentation/bloc/accounts_state.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/screens/account_detail_screen.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/widgets/account_list_card.dart';
-import 'package:budgetting_frontend/features/accounts/presentation/widgets/accounts_overview_card.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/widgets/add_account_sheet.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
@@ -81,11 +81,6 @@ class _AccountsView extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openAddAccountSheet(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Account'),
-      ),
       body: BlocBuilder<AccountsBloc, AccountsState>(
         builder: (context, state) {
           if (state.status == AccountsStatus.loading ||
@@ -99,56 +94,91 @@ class _AccountsView extends StatelessWidget {
             );
           }
 
-          final overviewCard = AccountsOverviewCard(
-            totalBalance:
-                state.accounts.fold(0, (sum, a) => sum + a.balance),
-            activeAccounts: state.accounts.length,
-            lowBalanceCount:
-                state.accounts.where((a) => a.balance < 1000).length,
-            currencyText: formatCurrency(
-              state.accounts.fold(0, (sum, a) => sum + a.balance),
-            ),
-          );
-          final accountSection = _buildAccountSection(context, state);
+          final totalBalance =
+              state.accounts.fold<double>(0, (s, a) => s + a.balance);
+          final lowCount =
+              state.accounts.where((a) => a.balance < 1000).length;
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 980;
-
-              if (isWide) {
-                return SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: overviewCard),
-                        const SizedBox(width: 16),
-                        Expanded(flex: 2, child: accountSection),
-                      ],
+          return RefreshIndicator(
+            onRefresh: () async => context
+                .read<AccountsBloc>()
+                .add(const AccountsRefreshRequested()),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ── Balance header ──────────────────────────────────────
+                  ColoredBox(
+                    color: AppTheme.primaryMint,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Total Balance',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  formatCurrency(totalBalance),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                if (lowCount > 0) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '$lowCount account'
+                                    '${lowCount == 1 ? '' : 's'}'
+                                    ' need attention',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          FilledButton.icon(
+                            onPressed: () => _openAddAccountSheet(context),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Add Account'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppTheme.primaryMint,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                );
-              }
-
-              return RefreshIndicator(
-                onRefresh: () async => context
-                    .read<AccountsBloc>()
-                    .add(const AccountsRefreshRequested()),
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      overviewCard,
-                      const SizedBox(height: 20),
-                      accountSection,
-                    ],
+                  // ── Account list ────────────────────────────────────────
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 640),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                        child: _buildAccountSection(context, state),
+                      ),
+                    ),
                   ),
-                ),
-              );
-            },
+                ],
+              ),
+            ),
           );
         },
       ),
