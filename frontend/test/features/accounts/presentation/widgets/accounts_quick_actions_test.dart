@@ -5,14 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   Widget buildWidget({
     VoidCallback? onAddAccount,
-    VoidCallback? onTransfer,
     VoidCallback? onExport,
   }) =>
       MaterialApp(
         home: Scaffold(
           body: AccountsQuickActions(
             onAddAccount: onAddAccount ?? () {},
-            onTransfer: onTransfer ?? () {},
             onExport: onExport ?? () {},
           ),
         ),
@@ -24,11 +22,6 @@ void main() {
       expect(find.text('Add Account'), findsOneWidget);
     });
 
-    testWidgets('renders Transfer button', (tester) async {
-      await tester.pumpWidget(buildWidget());
-      expect(find.text('Transfer'), findsOneWidget);
-    });
-
     testWidgets('renders Export button', (tester) async {
       await tester.pumpWidget(buildWidget());
       expect(find.text('Export'), findsOneWidget);
@@ -38,13 +31,6 @@ void main() {
       var tapped = false;
       await tester.pumpWidget(buildWidget(onAddAccount: () => tapped = true));
       await tester.tap(find.text('Add Account'));
-      expect(tapped, isTrue);
-    });
-
-    testWidgets('fires onTransfer when Transfer tapped', (tester) async {
-      var tapped = false;
-      await tester.pumpWidget(buildWidget(onTransfer: () => tapped = true));
-      await tester.tap(find.text('Transfer'));
       expect(tapped, isTrue);
     });
 
