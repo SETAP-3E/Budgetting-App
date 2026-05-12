@@ -26,17 +26,25 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
   bool _loading = true;
   GoogleMapController? _mapController;
   String? _selectedCategory;
+  DateTimeRange? _dateRange;
 
   // Pre-built PNG marker icons keyed by category name.
   Map<String, BitmapDescriptor> _markerIcons = {};
 
-  // Geolocated transactions, optionally filtered by selected category.
+  // Geolocated transactions, optionally filtered by category and date range.
   List<TransactionModel> get _visible => _transactions
       .where((t) => t.latitude != null && t.longitude != null)
       .where(
         (t) =>
             _selectedCategory == null || t.categoryName == _selectedCategory,
       )
+      .where((t) {
+        if (_dateRange == null) return true;
+        return !t.date.isBefore(_dateRange!.start) &&
+            !t.date.isAfter(
+              _dateRange!.end.add(const Duration(days: 1)),
+            );
+      })
       .toList();
 
   // Sorted list of unique categories that have at least one geolocated tx.
@@ -124,6 +132,29 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
     return BitmapDescriptor.bytes(bytes!.buffer.asUint8List());
   }
 
+  Future<void> _pickDateRange() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => _DateRangeSheet(
+        initial: _dateRange,
+        onApply: (range) {
+          if (!mounted) return;
+          setState(() => _dateRange = range);
+          _fitBounds();
+        },
+        onClear: () {
+          if (!mounted) return;
+          setState(() => _dateRange = null);
+          _fitBounds();
+        },
+      ),
+    );
+  }
+
   void _fitBounds() {
     final pts = _visible
         .map((t) => LatLng(t.latitude!, t.longitude!))
@@ -203,7 +234,7 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
                         _fitBounds();
                       },
                     ),
-                    // Category filter chips — right-side reserved for legend.
+                    // Category filter chips — left side.
                     if (_categories.isNotEmpty)
                       Positioned(
                         top: 8,
@@ -241,12 +272,26 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
                           ),
                         ),
                       ),
-                    // Colour legend — top-right.
+                    // Date range button + colour legend — top-right row.
                     if (hues.isNotEmpty)
                       Positioned(
                         top: 8,
                         right: 8,
-                        child: _Legend(categoryHues: hues),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _DateRangeButton(
+                              dateRange: _dateRange,
+                              onPick: _pickDateRange,
+                              onClear: () {
+                                setState(() => _dateRange = null);
+                                _fitBounds();
+                              },
+                            ),
+                            const SizedBox(width: 6),
+                            _Legend(categoryHues: hues),
+                          ],
+                        ),
                       ),
                     // Stats card — bottom centre.
                     if (markers.isNotEmpty)
@@ -324,6 +369,338 @@ class _Legend extends StatelessWidget {
               ),
             );
           }).toList(),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Date range button ────────────────────────────────────────────────────────
+
+class _DateRangeButton extends StatelessWidget {
+  const _DateRangeButton({
+    required this.dateRange,
+    required this.onPick,
+    required this.onClear,
+  });
+
+  final DateTimeRange? dateRange;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final active = dateRange != null;
+    final fmt = DateFormat('d MMM');
+
+    return GestureDetector(
+      onTap: onPick,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
+        decoration: BoxDecoration(
+          color: active
+              ? theme.colorScheme.primaryContainer
+              : theme.colorScheme.surface.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 13,
+              color: active
+                  ? theme.colorScheme.onPrimaryContainer
+                  : theme.colorScheme.onSurface,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              active
+                  ? '${fmt.format(dateRange!.start)}'
+                    ' – ${fmt.format(dateRange!.end)}'
+                  : 'Date',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: active
+                    ? theme.colorScheme.onPrimaryContainer
+                    : theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (active) ...[
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: onClear,
+                child: Icon(
+                  Icons.close,
+                  size: 13,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+              ),
+            ] else
+              const SizedBox(width: 4),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Date range bottom sheet ──────────────────────────────────────────────────
+
+class _DateRangeSheet extends StatefulWidget {
+  const _DateRangeSheet({
+    required this.onApply,
+    required this.onClear,
+    this.initial,
+  });
+
+  final DateTimeRange? initial;
+  final ValueChanged<DateTimeRange> onApply;
+  final VoidCallback onClear;
+
+  @override
+  State<_DateRangeSheet> createState() => _DateRangeSheetState();
+}
+
+class _DateRangeSheetState extends State<_DateRangeSheet> {
+  static final _fmt = DateFormat('dd/MM/yyyy');
+
+  late final TextEditingController _startCtrl;
+  late final TextEditingController _endCtrl;
+  String? _startError;
+  String? _endError;
+
+  @override
+  void initState() {
+    super.initState();
+    _startCtrl = TextEditingController(
+      text: widget.initial != null ? _fmt.format(widget.initial!.start) : '',
+    );
+    _endCtrl = TextEditingController(
+      text: widget.initial != null ? _fmt.format(widget.initial!.end) : '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _startCtrl.dispose();
+    _endCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate({required bool isStart}) async {
+    final now = DateTime.now();
+    final ctrl = isStart ? _startCtrl : _endCtrl;
+    DateTime? current;
+    try {
+      current = _fmt.parseStrict(ctrl.text.trim());
+    } catch (_) {}
+    final picked = await showDialog<DateTime>(
+      context: context,
+      builder: (_) => _CalendarDialog(
+        initialDate: current ?? now,
+        firstDate: DateTime(2020),
+        lastDate: now,
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      ctrl.text = _fmt.format(picked);
+      if (isStart) {
+        _startError = null;
+      } else {
+        _endError = null;
+      }
+    });
+  }
+
+  void _apply() {
+    DateTime? start;
+    DateTime? end;
+    String? startErr;
+    String? endErr;
+    try {
+      start = _fmt.parseStrict(_startCtrl.text.trim());
+    } catch (_) {
+      startErr =
+          _startCtrl.text.trim().isEmpty ? 'Required' : 'Use dd/mm/yyyy';
+    }
+    try {
+      end = _fmt.parseStrict(_endCtrl.text.trim());
+    } catch (_) {
+      endErr = _endCtrl.text.trim().isEmpty ? 'Required' : 'Use dd/mm/yyyy';
+    }
+    if (start != null && end != null && start.isAfter(end)) {
+      startErr = 'Must be before end';
+    }
+    if (startErr != null || endErr != null) {
+      setState(() {
+        _startError = startErr;
+        _endError = endErr;
+      });
+      return;
+    }
+    Navigator.pop(context);
+    widget.onApply(DateTimeRange(start: start!, end: end!));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 32,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outline.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('Filter by date', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 20),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _startCtrl,
+                  keyboardType: TextInputType.datetime,
+                  decoration: InputDecoration(
+                    labelText: 'From',
+                    hintText: 'dd/mm/yyyy',
+                    errorText: _startError,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: const Icon(
+                        Icons.calendar_month_outlined,
+                        size: 18,
+                      ),
+                      onPressed: () => _pickDate(isStart: true),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                  ),
+                  onChanged: (_) {
+                    if (_startError != null) {
+                      setState(() => _startError = null);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _endCtrl,
+                  keyboardType: TextInputType.datetime,
+                  decoration: InputDecoration(
+                    labelText: 'To',
+                    hintText: 'dd/mm/yyyy',
+                    errorText: _endError,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: const Icon(
+                        Icons.calendar_month_outlined,
+                        size: 18,
+                      ),
+                      onPressed: () => _pickDate(isStart: false),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                  ),
+                  onChanged: (_) {
+                    if (_endError != null) {
+                      setState(() => _endError = null);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    widget.onClear();
+                  },
+                  child: const Text('Clear'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _apply,
+                  child: const Text('Apply'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Calendar picker dialog ───────────────────────────────────────────────────
+
+class _CalendarDialog extends StatelessWidget {
+  const _CalendarDialog({
+    required this.initialDate,
+    required this.firstDate,
+    required this.lastDate,
+  });
+
+  final DateTime initialDate;
+  final DateTime firstDate;
+  final DateTime lastDate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: SizedBox(
+        width: 300,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: CalendarDatePicker(
+            initialDate: initialDate,
+            firstDate: firstDate,
+            lastDate: lastDate,
+            onDateChanged: (date) => Navigator.pop(context, date),
+          ),
         ),
       ),
     );
