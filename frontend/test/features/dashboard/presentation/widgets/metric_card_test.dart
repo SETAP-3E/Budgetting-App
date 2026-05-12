@@ -17,6 +17,7 @@ void main() {
                 totalSpending: 2456.32,
                 month: 'March',
                 year: 2026,
+                budgetGoal: 0,
               ),
             ),
           ),
@@ -40,6 +41,7 @@ void main() {
                 totalSpending: 1234.5,
                 month: 'January',
                 year: 2026,
+                budgetGoal: 0,
               ),
             ),
           ),
@@ -62,6 +64,7 @@ void main() {
                 totalSpending: 0,
                 month: 'February',
                 year: 2026,
+                budgetGoal: 0,
               ),
             ),
           ),
@@ -71,7 +74,7 @@ void main() {
       expect(find.text('£0.00'), findsOneWidget);
     });
 
-    testWidgets('renders button when no goal provided', (
+    testWidgets('renders no-budget message when no goal provided', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
@@ -84,41 +87,15 @@ void main() {
                 totalSpending: 500,
                 month: 'March',
                 year: 2026,
+                budgetGoal: 0,
               ),
             ),
           ),
         ),
       );
 
-      expect(find.text('Add Spending'), findsOneWidget);
-      expect(find.byType(ElevatedButton), findsOneWidget);
-    });
-
-    testWidgets('calls onAddSpending when button tapped', (
-      WidgetTester tester,
-    ) async {
-      var wasPressed = false;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: ThemeData(useMaterial3: true),
-          home: Scaffold(
-            body: Padding(
-              padding: const EdgeInsets.all(16),
-              child: MetricCard(
-                totalSpending: 500,
-                month: 'March',
-                year: 2026,
-                onAddSpending: () => wasPressed = true,
-              ),
-            ),
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Add Spending'));
-      await tester.pumpAndSettle();
-
-      expect(wasPressed, true);
+      expect(find.text('No monthly budget set'), findsOneWidget);
+      expect(find.byType(ElevatedButton), findsNothing);
     });
 
     testWidgets('renders progress bar when goal provided', (
@@ -134,7 +111,7 @@ void main() {
                 totalSpending: 1500,
                 month: 'March',
                 year: 2026,
-                goalAmount: 3000,
+                budgetGoal: 3000,
               ),
             ),
           ),
@@ -144,7 +121,7 @@ void main() {
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('displays on-track message for spending under goal', (
+    testWidgets('displays remaining budget when spending is under goal', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
@@ -157,17 +134,18 @@ void main() {
                 totalSpending: 1500,
                 month: 'March',
                 year: 2026,
-                goalAmount: 3000,
+                budgetGoal: 3000,
               ),
             ),
           ),
         ),
       );
 
-      expect(find.text("You're on track toward your goal"), findsOneWidget);
+      expect(find.text('£1,500.00 remaining'), findsOneWidget);
+      expect(find.text('50% used'), findsOneWidget);
     });
 
-    testWidgets('displays exceeded message for spending over goal', (
+    testWidgets('displays over-budget text when spending exceeds goal', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
@@ -180,14 +158,15 @@ void main() {
                 totalSpending: 3500,
                 month: 'March',
                 year: 2026,
-                goalAmount: 3000,
+                budgetGoal: 3000,
               ),
             ),
           ),
         ),
       );
 
-      expect(find.text("You've exceeded your goal"), findsOneWidget);
+      expect(find.text('£500.00 over budget'), findsOneWidget);
+      expect(find.text('117% used'), findsOneWidget);
     });
 
     testWidgets('progress bar shows 50% fill at goal midpoint', (
@@ -203,7 +182,7 @@ void main() {
                 totalSpending: 1500,
                 month: 'March',
                 year: 2026,
-                goalAmount: 3000,
+                budgetGoal: 3000,
               ),
             ),
           ),
@@ -229,7 +208,7 @@ void main() {
                 totalSpending: 4000,
                 month: 'March',
                 year: 2026,
-                goalAmount: 3000,
+                budgetGoal: 3000,
               ),
             ),
           ),
@@ -254,7 +233,7 @@ void main() {
                 totalSpending: 1500,
                 month: 'March',
                 year: 2026,
-                goalAmount: 3000,
+                budgetGoal: 3000,
               ),
             ),
           ),
@@ -277,6 +256,7 @@ void main() {
                 totalSpending: 9999.99,
                 month: 'December',
                 year: 2026,
+                budgetGoal: 0,
               ),
             ),
           ),
@@ -302,6 +282,7 @@ void main() {
                 totalSpending: 500,
                 month: 'November',
                 year: 2025,
+                budgetGoal: 0,
               ),
             ),
           ),
@@ -324,6 +305,7 @@ void main() {
                 totalSpending: 500,
                 month: 'March',
                 year: 2026,
+                budgetGoal: 0,
               ),
             ),
           ),
