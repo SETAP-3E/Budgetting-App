@@ -18,8 +18,8 @@ class BudgetItemModel {
       categoryId: m['category_id'] as String,
       name: m['name'] as String,
       colourValue: (m['colour_value'] as int?) ?? 0,
-      goalAmount: (m['goal_amount'] as num).toDouble(),
-      spentAmount: (m['spent_amount'] as num).toDouble(),
+      goalAmount: double.parse(m['goal_amount'].toString()),
+      spentAmount: double.parse(m['spent_amount'].toString()),
     );
   }
 

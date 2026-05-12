@@ -1,9 +1,8 @@
 import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
+import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_summary_card.dart';
 import 'package:flutter/material.dart';
 
-/// Displays individual budget information with spending progress.
-///
-/// Shows: rank, category name, allocated/spent amounts, progress bar, percentage.
+/// Displays an individual category's budget vs spending with a progress bar.
 class BudgetCard extends StatelessWidget {
   /// Create a [BudgetCard].
   const BudgetCard({
@@ -12,78 +11,80 @@ class BudgetCard extends StatelessWidget {
     required this.allocatedAmount,
     required this.spentAmount,
     required this.percentage,
-    this.categoryColour = 0xFFFF9800,
+    this.categoryColour = 0xFF32B5A0,
     this.onEditLimit,
     super.key,
   });
 
-  /// Rank number (1, 2, 3, etc.).
+  /// Rank position (1 = highest goal).
   final int rank;
 
-  /// Name of the budget category (e.g., "Groceries").
+  /// Category display name.
   final String categoryName;
 
-  /// Total budget allocated for this category.
+  /// Budget goal for this category.
   final double allocatedAmount;
 
-  /// Amount already spent in this category.
+  /// Amount spent so far.
   final double spentAmount;
 
-  /// Percentage of budget used (0-100+).
+  /// Percentage of goal used (0–100+).
   final double percentage;
 
-  /// Color associated with this category (as integer).
+  /// ARGB colour integer for the category accent.
   final int categoryColour;
 
-  /// Optional callback to edit this category's budget limit.
+  /// Optional callback when the edit icon is tapped.
   final VoidCallback? onEditLimit;
 
   @override
   Widget build(BuildContext context) {
-    final isOverBudget = percentage > 100;
+    final barColour = budgetHealthColour(percentage);
+    final isOver = percentage > 100;
 
     return Card(
+      margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            // Rank circle
             Container(
-              width: 32,
-              height: 32,
+              width: 34,
+              height: 34,
               decoration: BoxDecoration(
                 color: Color(categoryColour),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
               child: Text(
-                '#$rank',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                '$rank',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(width: 12),
-            // Category name and amounts
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     categoryName,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Row(
                     children: [
                       Text(
                         formatCurrency(spentAmount),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: isOverBudget ? Colors.red : null,
+                              fontWeight: FontWeight.w600,
+                              color: isOver ? barColour : null,
                             ),
                       ),
                       Text(
@@ -92,39 +93,41 @@ class BudgetCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  // Progress bar
+                  const SizedBox(height: 5),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(3),
                     child: LinearProgressIndicator(
-                      value: percentage > 100 ? 1.0 : percentage / 100,
-                      minHeight: 4,
-                      backgroundColor: Colors.grey[300],
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isOverBudget ? Colors.red : Color(categoryColour),
-                      ),
+                      value: (percentage / 100).clamp(0.0, 1.0),
+                      minHeight: 5,
+                      backgroundColor:
+                          barColour.withValues(alpha: 0.15),
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(barColour),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            // Percentage and edit action
+            const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   '${percentage.toInt()}%',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: isOverBudget ? Colors.red : null,
+                        color: barColour,
                       ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  tooltip: 'Edit budget limit',
-                  onPressed: onEditLimit,
-                ),
+                if (onEditLimit != null)
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    tooltip: 'Edit limit',
+                    onPressed: onEditLimit,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
               ],
             ),
           ],

@@ -30,6 +30,7 @@ class AccountModel {
     required this.balance,
     required this.monthlyBudget,
     required this.monthlySpent,
+    required this.weeklySpent,
     required this.accentColor,
   });
 
@@ -51,17 +52,32 @@ class AccountModel {
   /// Amount spent so far this month.
   final double monthlySpent;
 
+  /// Amount spent in the current week of this month.
+  final double weeklySpent;
+
   /// Accent color for avatars and indicators.
   final Color accentColor;
 
   /// Remaining budget value for this month.
   double get remainingBudget => monthlyBudget - monthlySpent;
 
-  /// Utilization ratio in the range 0..1+.
+  /// Monthly utilization ratio in the range 0..1+.
   double get budgetUsageRatio {
-    if (monthlyBudget <= 0) {
-      return 0;
-    }
+    if (monthlyBudget <= 0) return 0;
     return monthlySpent / monthlyBudget;
+  }
+
+  /// Pro-rated weekly target (monthly budget ÷ number of weeks in the month).
+  double get weeklyTarget {
+    final now = DateTime.now();
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final numWeeks = (daysInMonth / 7).ceil();
+    return monthlyBudget > 0 ? monthlyBudget / numWeeks : 0;
+  }
+
+  /// Weekly utilization ratio in the range 0..1+.
+  double get weeklyUsageRatio {
+    if (weeklyTarget <= 0) return 0;
+    return weeklySpent / weeklyTarget;
   }
 }

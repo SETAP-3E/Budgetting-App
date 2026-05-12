@@ -12,6 +12,7 @@ class MockAccountsDatasource {
       balance: 1842.76,
       monthlyBudget: 1800,
       monthlySpent: 1210.54,
+      weeklySpent: 320.15,
       accentColor: Color(0xFF4DB6AC),
     ),
     const AccountModel(
@@ -21,6 +22,7 @@ class MockAccountsDatasource {
       balance: 5200,
       monthlyBudget: 600,
       monthlySpent: 420,
+      weeklySpent: 105,
       accentColor: Color(0xFF66BB6A),
     ),
     const AccountModel(
@@ -30,6 +32,7 @@ class MockAccountsDatasource {
       balance: 963.45,
       monthlyBudget: 1100,
       monthlySpent: 892.18,
+      weeklySpent: 210.50,
       accentColor: Color(0xFFFFC107),
     ),
     const AccountModel(
@@ -39,6 +42,7 @@ class MockAccountsDatasource {
       balance: 1375.20,
       monthlyBudget: 300,
       monthlySpent: 140,
+      weeklySpent: 0,
       accentColor: Color(0xFFFF9800),
     ),
   ];

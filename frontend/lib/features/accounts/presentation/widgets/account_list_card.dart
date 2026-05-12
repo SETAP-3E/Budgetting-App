@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/theme/app_theme.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
 import 'package:flutter/material.dart';
 
@@ -24,10 +25,20 @@ class AccountListCard extends StatelessWidget {
   /// Callback triggered when the card is selected.
   final VoidCallback onTap;
 
+  Color _weeklyColor(double ratio) {
+    if (ratio > 1.0) return const Color(0xFFB71C1C);
+    if (ratio >= 0.9) return const Color(0xFFE65100);
+    if (ratio >= 0.75) return const Color(0xFFFFB300);
+    return AppTheme.primaryMint;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final usage = account.budgetUsageRatio.clamp(0, 1).toDouble();
+    final monthlyUsage = account.budgetUsageRatio.clamp(0, 1).toDouble();
+    final hasWeeklyTarget = account.weeklyTarget > 0;
+    final weeklyRatio = account.weeklyUsageRatio;
+    final weeklyUsage = weeklyRatio.clamp(0, 1).toDouble();
 
     return Card(
       child: InkWell(
@@ -78,10 +89,8 @@ class AccountListCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                       child: LinearProgressIndicator(
                         minHeight: 7,
-                        value: usage,
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .primary
+                        value: monthlyUsage,
+                        backgroundColor: theme.colorScheme.primary
                             .withValues(alpha: 0.15),
                       ),
                     ),
@@ -90,6 +99,33 @@ class AccountListCard extends StatelessWidget {
                   Text(remainingText, style: theme.textTheme.labelSmall),
                 ],
               ),
+              if (hasWeeklyTarget) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          minHeight: 5,
+                          value: weeklyUsage,
+                          color: _weeklyColor(weeklyRatio),
+                          backgroundColor: theme.colorScheme.primary
+                              .withValues(alpha: 0.10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Wk: £${account.weeklySpent.toStringAsFixed(0)}'
+                      ' / £${account.weeklyTarget.toStringAsFixed(0)}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: _weeklyColor(weeklyRatio),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

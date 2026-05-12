@@ -21,7 +21,15 @@ class AccountRepository {
                  WHERE t.account_id = a.id
                    AND DATE_TRUNC('month', t.transaction_date)
                      = DATE_TRUNC('month', CURRENT_DATE)
-               ), 0) AS monthly_spent
+               ), 0) AS monthly_spent,
+               COALESCE((
+                 SELECT SUM(t.amount) FROM transactions t
+                 WHERE t.account_id = a.id
+                   AND DATE_TRUNC('month', t.transaction_date)
+                     = DATE_TRUNC('month', CURRENT_DATE)
+                   AND CEIL(EXTRACT(DAY FROM t.transaction_date) / 7.0)::int
+                     = CEIL(EXTRACT(DAY FROM CURRENT_DATE) / 7.0)::int
+               ), 0) AS weekly_spent
         FROM accounts a
         WHERE a.user_id = @userId AND a.is_active = TRUE
         ORDER BY a.created_at
@@ -49,8 +57,8 @@ class AccountRepository {
         '  (@userId, @name, @accountType, '
         '   @balance, @monthlyBudget, @accentColor) '
         'RETURNING id, user_id, name, account_type, '
-        '  balance, monthly_budget, '
-        '  accent_color, 0 AS monthly_spent',
+        '  balance, monthly_budget, accent_color, '
+        '  0 AS monthly_spent, 0 AS weekly_spent',
       ),
       parameters: {
         'userId': userId,

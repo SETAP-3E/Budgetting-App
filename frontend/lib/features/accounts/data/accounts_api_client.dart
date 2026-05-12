@@ -55,6 +55,7 @@ class AccountsApiClient {
         balance: (json['balance'] as num).toDouble(),
         monthlyBudget: (json['monthly_budget'] as num).toDouble(),
         monthlySpent: (json['monthly_spent'] as num).toDouble(),
+        weeklySpent: (json['weekly_spent'] as num).toDouble(),
         accentColor: Color(json['accent_color'] as int),
       );
 }

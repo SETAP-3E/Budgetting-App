@@ -35,18 +35,17 @@ Handler middleware(Handler handler) {
       );
     }
 
+    // Verify JWT first — only this block returns 401.
+    // The route handler runs OUTSIDE this try-catch so that route errors
+    // don't get swallowed and misreported as 401 Invalid token.
+    final String userId;
     try {
       final jwt = JWT.verify(
         authHeader.substring(7),
         SecretKey(Config.jwtSecret),
       );
       final payload = jwt.payload as Map<String, dynamic>;
-      final userId = payload['sub'] as String;
-
-      // Inject the authenticated user's ID for downstream route handlers.
-      final withUser = withDb.use(provider<String>((_) => userId));
-      final response = await withUser(context);
-      return response.copyWith(headers: {...response.headers, ..._corsHeaders});
+      userId = payload['sub'] as String;
     } on JWTExpiredException {
       return Response.json(
         statusCode: 401,
@@ -60,6 +59,11 @@ Handler middleware(Handler handler) {
         body: {'error': 'Invalid token'},
       );
     }
+
+    // Inject the authenticated user's ID for downstream route handlers.
+    final withUser = withDb.use(provider<String>((_) => userId));
+    final response = await withUser(context);
+    return response.copyWith(headers: {...response.headers, ..._corsHeaders});
   };
 }
 

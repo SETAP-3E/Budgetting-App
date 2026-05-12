@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Logo colour palette
-  static const Color primaryMint    = Color(0xFF32B5A0); // body dark → primary
-  static const Color lightMint      = Color(0xFFA7E9DA); // body light
-  static const Color darkTeal       = Color(0xFF1A806D); // seams / detail
-  static const Color cyanAccent     = Color(0xFF00E1FD); // cape highlight
-  static const Color navyVisor      = Color(0xFF141E28); // face / dark surfaces
-  static const Color noteGreen      = Color(0xFF88D4AB); // positive states
-  static const Color scaffoldLight  = Color(0xFFF0FAFA); // light bg
+  // Brand palette — teal/mint
+  static const Color primaryMint   = Color(0xFF32B5A0); // primary teal
+  static const Color lightMint     = Color(0xFFA7E9DA); // light teal
+  static const Color darkTeal      = Color(0xFF1A806D); // dark teal accent
+  static const Color cyanAccent    = Color(0xFF00E1FD); // cyan highlight
+  static const Color navyVisor     = Color(0xFF141E28); // dark surfaces
+  static const Color noteGreen     = Color(0xFF88D4AB); // positive states
+  static const Color scaffoldLight = Color(0xFFF0FAFA); // light background
   static const Color white          = Color(0xFFFFFFFF);
-  static const Color darkText       = Color(0xFF1A2E28);
-  static const Color mediumText     = Color(0xFF557060);
+  static const Color darkText       = Color(0xFF1A1C1E); // neutral near-black
+  static const Color mediumText     = Color(0xFF6B7280); // neutral gray-500
 
-  // Dark theme
-  static const Color darkSurface    = Color(0xFF1E2D28);
+  // Dark theme surfaces
+  static const Color darkSurface    = Color(0xFF1C2128); // neutral dark surface
   static const Color lightText      = Color(0xFFFFFFFF);
-  static const Color lightGreyText  = Color(0xFFD4EEE8);
-  static const Color mediumGreyText = Color(0xFF88B8AC);
+  static const Color lightGreyText  = Color(0xFFD9E2EC); // neutral light gray
+  static const Color mediumGreyText = Color(0xFF8B9BB4); // neutral medium gray
 
   static ThemeData get lightTheme {
     return ThemeData(

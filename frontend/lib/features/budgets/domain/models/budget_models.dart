@@ -1,3 +1,66 @@
+/// Lightweight model for a category returned by GET /categories.
+class CategoryItem {
+  /// Create a [CategoryItem].
+  const CategoryItem({
+    required this.id,
+    required this.name,
+    required this.icon,
+    required this.colourValue,
+  });
+
+  /// Deserialise from the API response.
+  factory CategoryItem.fromJson(Map<String, dynamic> json) => CategoryItem(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        icon: json['icon'] as String,
+        colourValue: json['colour_value'] as int,
+      );
+
+  /// Unique category identifier.
+  final String id;
+
+  /// Display name of the category.
+  final String name;
+
+  /// Material icon name string (e.g. 'shopping_bag').
+  final String icon;
+
+  /// Flutter ARGB colour integer.
+  final int colourValue;
+}
+
+/// One week's spending within a monthly period.
+class WeeklySpendingItem {
+  /// Create a [WeeklySpendingItem].
+  const WeeklySpendingItem({
+    required this.weekNum,
+    required this.startDay,
+    required this.endDay,
+    required this.spent,
+  });
+
+  /// Deserialise from the API response.
+  factory WeeklySpendingItem.fromJson(Map<String, dynamic> json) =>
+      WeeklySpendingItem(
+        weekNum: json['week'] as int,
+        startDay: json['start_day'] as int,
+        endDay: json['end_day'] as int,
+        spent: (json['spent'] as num).toDouble(),
+      );
+
+  /// Week number within the month (1–5).
+  final int weekNum;
+
+  /// First day-of-month in this week.
+  final int startDay;
+
+  /// Last day-of-month in this week (inclusive).
+  final int endDay;
+
+  /// Total amount spent in this week.
+  final double spent;
+}
+
 /// A single category's budget goal and actual spend for a period.
 class BudgetItemModel {
   /// Create a [BudgetItemModel].
@@ -52,6 +115,7 @@ class BudgetSummaryModel {
     required this.monthName,
     required this.budgets,
     this.month,
+    this.weeklyBreakdown,
   });
 
   /// The calendar year.
@@ -65,6 +129,9 @@ class BudgetSummaryModel {
 
   /// Per-category budget items, ordered by goal amount descending.
   final List<BudgetItemModel> budgets;
+
+  /// Per-week spending totals (only present for monthly requests).
+  final List<WeeklySpendingItem>? weeklyBreakdown;
 
   /// Sum of all category goal amounts.
   double get totalGoal =>

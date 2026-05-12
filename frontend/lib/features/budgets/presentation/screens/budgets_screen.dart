@@ -1,321 +1,420 @@
-import 'package:budgetting_frontend/features/accounts/data/accounts_api_client.dart';
-import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
+import 'package:budgetting_frontend/features/budgets/domain/models/budget_models.dart';
+import 'package:budgetting_frontend/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_alert_card.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_card.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_chart.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_summary_card.dart';
+import 'package:budgetting_frontend/features/budgets/presentation/widgets/set_budget_sheet.dart';
+import 'package:budgetting_frontend/features/budgets/presentation/widgets/weekly_budget_chart.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Budgets screen showing per-account budget vs spending for the current month.
-class BudgetsScreen extends StatefulWidget {
+/// Budgets screen — monthly overview with weekly breakdown chart.
+class BudgetsScreen extends StatelessWidget {
   /// Create a [BudgetsScreen].
   const BudgetsScreen({super.key});
 
   @override
-  State<BudgetsScreen> createState() => _BudgetsScreenState();
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    return BlocProvider(
+      create: (_) => BudgetsBloc(year: now.year, month: now.month)
+        ..add(BudgetsLoadRequested(year: now.year, month: now.month)),
+      child: const _BudgetsView(),
+    );
+  }
 }
 
-class _BudgetsScreenState extends State<BudgetsScreen> {
-  final _apiClient = AccountsApiClient();
-
-  bool _isSimpleView = true;
-  bool _isLoading = false;
-  String? _error;
-
-  double _totalBudget = 0;
-  double _totalSpent = 0;
-  List<Map<String, dynamic>> _currentBudgets = [];
-
-  static const _monthNames = [
-    '',
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
+class _BudgetsView extends StatefulWidget {
+  const _BudgetsView();
 
   @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
+  State<_BudgetsView> createState() => _BudgetsViewState();
+}
 
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final accounts = await _apiClient.getAccounts();
-      final budgeted = accounts
-          .where((a) => a.monthlyBudget > 0)
-          .toList()
-        ..sort((a, b) => b.monthlyBudget.compareTo(a.monthlyBudget));
-
-      final budgets = budgeted.indexed.map((entry) {
-        final (i, account) = entry;
-        final spent = account.monthlySpent;
-        final allocated = account.monthlyBudget;
-        final colour = _resolveColour(account, i);
-        return <String, dynamic>{
-          'rank': i + 1,
-          'name': account.name,
-          'allocated': allocated,
-          'spent': spent,
-          'percentage': allocated > 0 ? spent / allocated * 100 : 0.0,
-          'colour': colour,
-        };
-      }).toList();
-
-      setState(() {
-        _isLoading = false;
-        _currentBudgets = budgets;
-        _totalBudget =
-            budgets.fold(0, (s, b) => s + (b['allocated'] as double));
-        _totalSpent =
-            budgets.fold(0, (s, b) => s + (b['spent'] as double));
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _error = e.toString();
-      });
-    }
-  }
-
-  int _resolveColour(AccountModel account, int index) {
-    const fallbacks = [
-      0xFF4CAF50, 0xFF2196F3, 0xFFFF9800,
-      0xFF9C27B0, 0xFFF44336, 0xFF00BCD4,
-    ];
-    final value = account.accentColor.toARGB32();
-    return value == 0 ? fallbacks[index % fallbacks.length] : value;
-  }
-
-  Map<String, dynamic> _findHighestPercentageBudget(
-    List<Map<String, dynamic>> budgets,
-  ) {
-    if (budgets.isEmpty) return <String, dynamic>{};
-    return budgets.reduce((current, next) {
-      final a = current['percentage'] as double;
-      final b = next['percentage'] as double;
-      return b > a ? next : current;
-    });
-  }
-
-  void _toggleViewMode(Set<bool> selected) {
-    setState(() => _isSimpleView = selected.first);
-  }
-
-  void _showEditBudgetLimitSheet(Map<String, dynamic> budget) {
-    final controller = TextEditingController(
-      text: (budget['allocated'] as double).toStringAsFixed(2),
-    );
-
-    showModalBottomSheet<void>(
+class _BudgetsViewState extends State<_BudgetsView> {
+  Future<void> _openSetBudgetSheet(
+    BuildContext context,
+    int year,
+    int month,
+  ) async {
+    final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      builder: (_) => SetBudgetSheet(year: year, month: month),
+    );
+    if ((saved ?? false) && context.mounted) {
+      context
+          .read<BudgetsBloc>()
+          .add(BudgetsLoadRequested(year: year, month: month));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<BudgetsBloc, BudgetsState>(
+      builder: (context, state) {
+        return Scaffold(
+          appBar: AppHeader(title: 'Budgets', onMenuPressed: () {}),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => _openSetBudgetSheet(
+              context,
+              state.selectedYear,
+              state.selectedMonth,
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text('Set Budget'),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Set limit for ${budget['name']}',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'New budget limit',
-                  prefixText: '£',
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  final input = controller.text.trim();
-                  final parsedLimit = double.tryParse(input);
-                  if (parsedLimit == null || parsedLimit <= 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter a valid budget limit.'),
-                      ),
-                    );
-                    return;
-                  }
-                  _updateBudgetLimit(budget['name'] as String, parsedLimit);
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Save limit'),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
+          body: _buildBody(context, state),
+          bottomNavigationBar: const AppFooter(activeIndex: 2),
         );
       },
     );
   }
 
-  void _updateBudgetLimit(String accountName, double newLimit) {
-    final updated = _currentBudgets.map(Map<String, dynamic>.from).toList();
-    for (final b in updated) {
-      if (b['name'] == accountName) {
-        final spent = b['spent'] as double;
-        b['allocated'] = newLimit;
-        b['percentage'] = newLimit > 0 ? (spent / newLimit * 100) : 0.0;
-      }
+  Widget _buildBody(BuildContext context, BudgetsState state) {
+    if ((state.status == BudgetsStatus.loading ||
+            state.status == BudgetsStatus.initial) &&
+        state.summary == null) {
+      return const Center(child: CircularProgressIndicator());
     }
-    setState(() {
-      _currentBudgets = updated;
-      _totalBudget =
-          updated.fold(0, (s, b) => s + (b['allocated'] as double));
-      _totalSpent =
-          updated.fold(0, (s, b) => s + (b['spent'] as double));
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    return Scaffold(
-      appBar: AppHeader(title: 'Budgets', onMenuPressed: () {}),
-      body: _isLoading && _currentBudgets.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null && _currentBudgets.isEmpty
-              ? _buildErrorState()
-              : SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        BudgetSummaryCard(
-                          totalBudget: _totalBudget,
-                          totalSpent: _totalSpent,
-                          month: _monthNames[now.month],
-                          year: now.year,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildAlertBudget(),
-                        const SizedBox(height: 16),
-                        _buildViewModeToggle(),
-                        const SizedBox(height: 16),
-                        _buildBudgetChart(),
-                        const SizedBox(height: 16),
-                        _buildBudgetList(),
-                        const SizedBox(height: 8),
-                      ],
-                    ),
-                  ),
-                ),
-      bottomNavigationBar: const AppFooter(activeIndex: 2),
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _error ?? 'Something went wrong.',
-              textAlign: TextAlign.center,
+    if (state.status == BudgetsStatus.failure && state.summary == null) {
+      return _ErrorView(
+        message: state.errorMessage ?? 'Something went wrong.',
+        onRetry: () => context.read<BudgetsBloc>().add(
+              BudgetsLoadRequested(
+                year: state.selectedYear,
+                month: state.selectedMonth,
+              ),
             ),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: _loadData, child: const Text('Retry')),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () async => context.read<BudgetsBloc>().add(
+            BudgetsLoadRequested(
+              year: state.selectedYear,
+              month: state.selectedMonth,
+            ),
+          ),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _MonthNavigator(
+              year: state.selectedYear,
+              month: state.selectedMonth,
+            ),
+            const SizedBox(height: 12),
+            if (state.summary != null) ...[
+              _SummarySection(summary: state.summary!),
+              const SizedBox(height: 16),
+              _WeeklySection(
+                summary: state.summary!,
+                year: state.selectedYear,
+                month: state.selectedMonth,
+              ),
+              const SizedBox(height: 16),
+              _AlertSection(summary: state.summary!),
+              const SizedBox(height: 16),
+              if (state.summary!.budgets.isEmpty)
+                const _EmptyState()
+              else
+                _CategorySection(
+                  summary: state.summary!,
+                  viewMode: state.viewMode,
+                ),
+            ] else if (state.status == BudgetsStatus.loaded) ...[
+              const _EmptyState(),
+            ],
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildAlertBudget() {
-    if (_currentBudgets.isEmpty) return const SizedBox.shrink();
-    final alert = _findHighestPercentageBudget(_currentBudgets);
-    if (alert.isEmpty) return const SizedBox.shrink();
-    return BudgetAlertCard(
-      categoryName: alert['name'] as String,
-      allocatedAmount: alert['allocated'] as double,
-      currentAmount: alert['spent'] as double,
-      percentage: (alert['percentage'] as double).toInt().toDouble(),
-      categoryColour: alert['colour'] as int,
-    );
-  }
+// ── Month navigator ────────────────────────────────────────────────────────
 
-  Widget _buildViewModeToggle() {
+class _MonthNavigator extends StatelessWidget {
+  const _MonthNavigator({required this.year, required this.month});
+  final int year;
+  final int month;
+
+  static const _names = [
+    '',
+    'January', 'February', 'March', 'April',
+    'May', 'June', 'July', 'August',
+    'September', 'October', 'November', 'December',
+  ];
+
+  void _navigate(BuildContext context, int newYear, int newMonth) =>
+      context.read<BudgetsBloc>().add(
+            BudgetsLoadRequested(year: newYear, month: newMonth),
+          );
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final canGoNext = !(year == now.year && month == now.month);
+
+    var prevMonth = month - 1;
+    var prevYear = year;
+    if (prevMonth < 1) {
+      prevMonth = 12;
+      prevYear--;
+    }
+    var nextMonth = month + 1;
+    var nextYear = year;
+    if (nextMonth > 12) {
+      nextMonth = 1;
+      nextYear++;
+    }
+
     return Row(
       children: [
-        const Text('View Mode:'),
-        const SizedBox(width: 12),
-        SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment(value: true, label: Text('Standard view')),
-            ButtonSegment(value: false, label: Text('Edit budgets')),
-          ],
-          selected: {_isSimpleView},
-          onSelectionChanged: _toggleViewMode,
+        IconButton(
+          icon: const Icon(Icons.chevron_left),
+          tooltip: '${_names[prevMonth]} $prevYear',
+          onPressed: () => _navigate(context, prevYear, prevMonth),
         ),
-      ],
-    );
-  }
-
-  Widget _buildBudgetList() {
-    if (_isSimpleView) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Budget Details',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        ..._currentBudgets.map(
-          (b) => BudgetCard(
-            rank: b['rank'] as int,
-            categoryName: b['name'] as String,
-            allocatedAmount: b['allocated'] as double,
-            spentAmount: b['spent'] as double,
-            percentage: b['percentage'] as double,
-            categoryColour: b['colour'] as int,
-            onEditLimit: () => _showEditBudgetLimitSheet(b),
+        Expanded(
+          child: Text(
+            '${_names[month]} $year',
+            textAlign: TextAlign.center,
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
+        IconButton(
+          icon: const Icon(Icons.chevron_right),
+          tooltip: canGoNext ? '${_names[nextMonth]} $nextYear' : null,
+          onPressed: canGoNext
+              ? () => _navigate(context, nextYear, nextMonth)
+              : null,
+        ),
       ],
     );
   }
+}
 
-  Widget _buildBudgetChart() {
-    final chartCategories = _currentBudgets
+// ── Summary section ────────────────────────────────────────────────────────
+
+class _SummarySection extends StatelessWidget {
+  const _SummarySection({required this.summary});
+  final BudgetSummaryModel summary;
+
+  @override
+  Widget build(BuildContext context) => BudgetSummaryCard(
+        totalBudget: summary.totalGoal,
+        totalSpent: summary.totalSpent,
+        monthName: summary.monthName,
+        year: summary.year,
+        month: summary.month ?? DateTime.now().month,
+      );
+}
+
+// ── Weekly chart section ───────────────────────────────────────────────────
+
+class _WeeklySection extends StatelessWidget {
+  const _WeeklySection({
+    required this.summary,
+    required this.year,
+    required this.month,
+  });
+  final BudgetSummaryModel summary;
+  final int year;
+  final int month;
+
+  @override
+  Widget build(BuildContext context) {
+    final weeks = summary.weeklyBreakdown;
+    final hasSpending = weeks?.any((w) => w.spent > 0) ?? false;
+    if (weeks == null ||
+        weeks.isEmpty ||
+        (!hasSpending && summary.totalGoal <= 0)) {
+      return const SizedBox.shrink();
+    }
+    return WeeklyBudgetChart(
+      weeks: weeks,
+      totalGoal: summary.totalGoal,
+      year: year,
+      month: month,
+    );
+  }
+}
+
+// ── Alert section ──────────────────────────────────────────────────────────
+
+class _AlertSection extends StatelessWidget {
+  const _AlertSection({required this.summary});
+  final BudgetSummaryModel summary;
+
+  @override
+  Widget build(BuildContext context) {
+    if (summary.budgets.isEmpty) return const SizedBox.shrink();
+
+    // Find the category with the highest usage percentage
+    final alert = summary.budgets.reduce(
+      (a, b) => b.percentage > a.percentage ? b : a,
+    );
+    // Only show if close to or over limit (>= 75 %)
+    if (alert.percentage < 75) return const SizedBox.shrink();
+
+    return BudgetAlertCard(
+      categoryName: alert.name,
+      allocatedAmount: alert.goalAmount,
+      currentAmount: alert.spentAmount,
+      percentage: alert.percentage,
+      categoryColour: alert.colourValue,
+    );
+  }
+}
+
+// ── Category section ───────────────────────────────────────────────────────
+
+class _CategorySection extends StatelessWidget {
+  const _CategorySection({
+    required this.summary,
+    required this.viewMode,
+  });
+  final BudgetSummaryModel summary;
+  final BudgetViewMode viewMode;
+
+  @override
+  Widget build(BuildContext context) {
+    if (summary.budgets.isEmpty) return const SizedBox.shrink();
+
+    final chartCategories = summary.budgets
         .map(
           (b) => <String, dynamic>{
-            'name': b['name'] as String,
-            'allocated': b['allocated'] as double,
-            'spent': b['spent'] as double,
-            'colour': b['colour'] as int,
+            'name': b.name,
+            'allocated': b.goalAmount,
+            'spent': b.spentAmount,
+            'colour': b.colourValue,
           },
         )
         .toList();
 
-    return BudgetChart(
-      categories: chartCategories,
-      isSimpleView: _isSimpleView,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Categories',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            SegmentedButton<BudgetViewMode>(
+              segments: const [
+                ButtonSegment(
+                  value: BudgetViewMode.overview,
+                  label: Text('Overview'),
+                ),
+                ButtonSegment(
+                  value: BudgetViewMode.details,
+                  label: Text('Details'),
+                ),
+              ],
+              selected: {viewMode},
+              onSelectionChanged: (s) => context
+                  .read<BudgetsBloc>()
+                  .add(BudgetsViewModeChanged(s.first)),
+              style: const ButtonStyle(
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        BudgetChart(
+          categories: chartCategories,
+          isSimpleView: viewMode == BudgetViewMode.overview,
+        ),
+        if (viewMode == BudgetViewMode.details) ...[
+          const SizedBox(height: 12),
+          ...summary.budgets.map(
+            (b) => BudgetCard(
+              rank: b.rank,
+              categoryName: b.name,
+              allocatedAmount: b.goalAmount,
+              spentAmount: b.spentAmount,
+              percentage: b.percentage,
+              categoryColour: b.colourValue,
+            ),
+          ),
+        ],
+      ],
     );
   }
+}
+
+// ── Empty / error states ───────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.pie_chart_outline,
+                size: 56,
+                color: Theme.of(context).colorScheme.outline,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No budgets set for this month.',
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: onRetry,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
 }

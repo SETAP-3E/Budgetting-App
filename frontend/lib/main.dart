@@ -4,7 +4,11 @@ import 'package:budgetting_frontend/core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await authNotifier.init();
+  try {
+    await authNotifier.init();
+  } catch (_) {
+    // Storage unavailable on this platform/context — start unauthenticated.
+  }
   runApp(const BudgetingApp());
 }
 

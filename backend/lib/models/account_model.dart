@@ -11,6 +11,7 @@ class AccountModel {
     required this.balance,
     required this.monthlyBudget,
     required this.monthlySpent,
+    required this.weeklySpent,
     required this.accentColor,
   });
 
@@ -27,6 +28,7 @@ class AccountModel {
       balance: double.parse(map['balance'].toString()),
       monthlyBudget: double.parse(map['monthly_budget'].toString()),
       monthlySpent: double.parse(map['monthly_spent'].toString()),
+      weeklySpent: double.parse(map['weekly_spent'].toString()),
       accentColor: map['accent_color'] as int,
     );
   }
@@ -52,6 +54,9 @@ class AccountModel {
   /// Total spent this calendar month (computed from transactions).
   final double monthlySpent;
 
+  /// Total spent in the current week of this calendar month.
+  final double weeklySpent;
+
   /// Flutter ARGB color integer for UI display.
   final int accentColor;
 
@@ -64,6 +69,7 @@ class AccountModel {
         'balance': balance,
         'monthly_budget': monthlyBudget,
         'monthly_spent': monthlySpent,
+        'weekly_spent': weeklySpent,
         'accent_color': accentColor,
       };
 }

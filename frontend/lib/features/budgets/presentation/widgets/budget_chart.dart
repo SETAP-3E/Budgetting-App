@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
+import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_summary_card.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -99,7 +100,6 @@ class _BudgetChartState extends State<BudgetChart> {
     final spent = c['spent'] as double;
     final allocated = c['allocated'] as double;
     final usedPct = allocated > 0 ? spent / allocated * 100 : 0.0;
-    final isOverBudget = spent > allocated;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -118,9 +118,7 @@ class _BudgetChartState extends State<BudgetChart> {
           '${usedPct.toStringAsFixed(0)}% used',
           style: TextStyle(
             fontSize: 11,
-            color: isOverBudget
-                ? Colors.red
-                : Theme.of(context).colorScheme.primary,
+            color: budgetHealthColour(usedPct),
           ),
           textAlign: TextAlign.center,
         ),
@@ -275,7 +273,9 @@ class _BudgetChartState extends State<BudgetChart> {
                             minHeight: 8,
                             backgroundColor: Colors.transparent,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              spent > allocated ? Colors.red : colour,
+                              budgetHealthColour(
+                                allocated > 0 ? spent / allocated * 100 : 0,
+                              ),
                             ),
                           ),
                         ),
