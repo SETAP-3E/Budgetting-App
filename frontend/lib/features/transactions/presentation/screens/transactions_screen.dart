@@ -213,10 +213,10 @@ class _TransactionsView extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openAddExpenseSheet(context),
-        tooltip: 'Add Expense',
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text('Add Expense'),
       ),
       bottomNavigationBar: const AppFooter(activeIndex: 3),
     );
