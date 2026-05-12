@@ -1,4 +1,5 @@
 import 'package:budgetting_frontend/core/network/auth_interceptor.dart';
+import 'package:budgetting_frontend/core/network/network_config.dart';
 import 'package:budgetting_frontend/core/router/app_router.dart';
 import 'package:budgetting_frontend/features/transactions/domain/models/transaction_model.dart';
 import 'package:dio/dio.dart';
@@ -6,11 +7,10 @@ import 'package:dio/dio.dart';
 /// HTTP client for the transactions, categories, and places API endpoints.
 class TransactionsApiClient {
   /// Create a [TransactionsApiClient].
-  TransactionsApiClient() : _dio = Dio(BaseOptions(baseUrl: _baseUrl)) {
+  TransactionsApiClient()
+      : _dio = Dio(BaseOptions(baseUrl: NetworkConfig.baseUrl)) {
     _dio.interceptors.add(AuthInterceptor(authNotifier: authNotifier));
   }
-
-  static const String _baseUrl = 'http://localhost:8080';
 
   final Dio _dio;
 
@@ -32,7 +32,7 @@ class TransactionsApiClient {
         accountName: json['account_name'] as String?,
         amount: (json['amount'] as num).toDouble(),
         categoryName: json['category_name'] as String,
-        location: json['description'] as String?,
+        location: json['place_name'] as String?,
         date: DateTime.parse(json['transaction_date'] as String),
         latitude: (json['latitude'] as num?)?.toDouble(),
         longitude: (json['longitude'] as num?)?.toDouble(),
@@ -47,7 +47,7 @@ class TransactionsApiClient {
     required String accountId,
     String? categoryId,
     String? newCategoryName,
-    String? description,
+    String? placeName,
     double? latitude,
     double? longitude,
   }) async {
@@ -58,8 +58,7 @@ class TransactionsApiClient {
         if (categoryId != null) 'category_id': categoryId,
         if (newCategoryName != null) 'new_category_name': newCategoryName,
         'amount': amount,
-        if (description != null && description.isNotEmpty)
-          'description': description,
+        if (placeName != null && placeName.isNotEmpty) 'place_name': placeName,
         'transaction_date': transactionDate,
         if (latitude != null && longitude != null) 'latitude': latitude,
         if (latitude != null && longitude != null) 'longitude': longitude,
@@ -75,7 +74,7 @@ class TransactionsApiClient {
     required String accountId,
     String? categoryId,
     String? newCategoryName,
-    String? description,
+    String? placeName,
     double? latitude,
     double? longitude,
   }) async {
@@ -86,8 +85,7 @@ class TransactionsApiClient {
         if (categoryId != null) 'category_id': categoryId,
         if (newCategoryName != null) 'new_category_name': newCategoryName,
         'amount': amount,
-        if (description != null && description.isNotEmpty)
-          'description': description,
+        if (placeName != null && placeName.isNotEmpty) 'place_name': placeName,
         'transaction_date': transactionDate,
         if (latitude != null && longitude != null) 'latitude': latitude,
         if (latitude != null && longitude != null) 'longitude': longitude,

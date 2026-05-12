@@ -1,4 +1,5 @@
 import 'package:budgetting_frontend/core/network/auth_interceptor.dart';
+import 'package:budgetting_frontend/core/network/network_config.dart';
 import 'package:budgetting_frontend/core/router/app_router.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
 import 'package:dio/dio.dart';
@@ -35,11 +36,10 @@ class AccountTransactionItem {
 /// HTTP client for the accounts API endpoints.
 class AccountsApiClient {
   /// Create an [AccountsApiClient].
-  AccountsApiClient() : _dio = Dio(BaseOptions(baseUrl: _baseUrl)) {
+  AccountsApiClient()
+      : _dio = Dio(BaseOptions(baseUrl: NetworkConfig.baseUrl)) {
     _dio.interceptors.add(AuthInterceptor(authNotifier: authNotifier));
   }
-
-  static const String _baseUrl = 'http://localhost:8080';
 
   final Dio _dio;
 
@@ -89,7 +89,7 @@ class AccountsApiClient {
             categoryName: j['category_name'] as String,
             amount: (j['amount'] as num).toDouble(),
             date: DateTime.parse(j['transaction_date'] as String),
-            location: j['description'] as String?,
+            location: j['place_name'] as String?,
           ),
         )
         .toList();

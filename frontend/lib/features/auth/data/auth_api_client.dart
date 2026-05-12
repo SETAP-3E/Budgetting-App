@@ -1,4 +1,5 @@
 import 'package:budgetting_frontend/core/auth/auth_service.dart';
+import 'package:budgetting_frontend/core/network/network_config.dart';
 import 'package:dio/dio.dart';
 
 /// Credentials returned after a successful login or signup.
@@ -24,7 +25,7 @@ class AuthCredentials {
 class AuthApiClient {
   /// Create an [AuthApiClient].
   AuthApiClient()
-      : _dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080')),
+      : _dio = Dio(BaseOptions(baseUrl: NetworkConfig.baseUrl)),
         _authService = AuthService();
 
   final Dio _dio;

@@ -1,4 +1,5 @@
 import 'package:budgetting_frontend/core/network/auth_interceptor.dart';
+import 'package:budgetting_frontend/core/network/network_config.dart';
 import 'package:budgetting_frontend/core/router/app_router.dart';
 import 'package:budgetting_frontend/features/budgets/domain/models/budget_models.dart';
 import 'package:dio/dio.dart';
@@ -6,7 +7,8 @@ import 'package:dio/dio.dart';
 /// HTTP client for the budgets API endpoint.
 class BudgetsApiClient {
   /// Create a [BudgetsApiClient].
-  BudgetsApiClient() : _dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080')) {
+  BudgetsApiClient()
+      : _dio = Dio(BaseOptions(baseUrl: NetworkConfig.baseUrl)) {
     _dio.interceptors.add(AuthInterceptor(authNotifier: authNotifier));
   }
 
@@ -19,6 +21,22 @@ class BudgetsApiClient {
         .cast<Map<String, dynamic>>()
         .map(CategoryItem.fromJson)
         .toList();
+  }
+
+  /// Deletes the budget goal for [categoryId] in [year]/[month].
+  Future<void> deleteBudget({
+    required String categoryId,
+    required int year,
+    required int month,
+  }) async {
+    await _dio.delete<void>(
+      '/budgets',
+      queryParameters: {
+        'category_id': categoryId,
+        'year': year.toString(),
+        'month': month.toString(),
+      },
+    );
   }
 
   /// Creates or updates a monthly budget goal for a category.
@@ -36,6 +54,14 @@ class BudgetsApiClient {
         'month': month,
         'goal_amount': goalAmount,
       },
+    );
+  }
+
+  /// Updates the name and colour of a custom category by [id].
+  Future<void> updateCategory(String id, String name, int colourValue) async {
+    await _dio.put<void>(
+      '/categories/$id',
+      data: {'name': name, 'colour_value': colourValue},
     );
   }
 
