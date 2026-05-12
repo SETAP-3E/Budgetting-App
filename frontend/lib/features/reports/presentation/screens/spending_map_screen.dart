@@ -1,4 +1,5 @@
 import 'dart:math' show max, min;
+import 'dart:ui' as ui;
 
 import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
@@ -26,11 +27,15 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
   GoogleMapController? _mapController;
   String? _selectedCategory;
 
-  // Geolocated transactions, filtered by selected category.
+  // Pre-built PNG marker icons keyed by category name.
+  Map<String, BitmapDescriptor> _markerIcons = {};
+
+  // Geolocated transactions, optionally filtered by selected category.
   List<TransactionModel> get _visible => _transactions
       .where((t) => t.latitude != null && t.longitude != null)
       .where(
-        (t) => _selectedCategory == null || t.categoryName == _selectedCategory,
+        (t) =>
+            _selectedCategory == null || t.categoryName == _selectedCategory,
       )
       .toList();
 
@@ -42,7 +47,7 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
       .toList()
     ..sort();
 
-  // Evenly-spaced hues across 360° — one per category, in sorted order.
+  // Evenly-spaced hues across 360° — one per category in sorted order.
   Map<String, double> get _categoryHues {
     final cats = _categories;
     if (cats.isEmpty) return {};
@@ -60,16 +65,63 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
     setState(() => _loading = true);
     try {
       final data = await _apiClient.getTransactions();
-      if (mounted) {
-        setState(() {
-          _transactions = data;
-          _loading = false;
-        });
-        if (_mapController != null) _fitBounds();
-      }
+      if (!mounted) return;
+      setState(() => _transactions = data);
+
+      // Build PNG icons for every category before showing markers.
+      final icons = await _buildMarkerIcons(_categoryHues);
+      if (!mounted) return;
+      setState(() {
+        _markerIcons = icons;
+        _loading = false;
+      });
+      if (_mapController != null) _fitBounds();
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  // Generates a coloured teardrop PNG for each category using dart:ui canvas.
+  Future<Map<String, BitmapDescriptor>> _buildMarkerIcons(
+    Map<String, double> hues,
+  ) async {
+    final result = <String, BitmapDescriptor>{};
+    for (final entry in hues.entries) {
+      final color = HSVColor.fromAHSV(1, entry.value, 0.85, 0.85).toColor();
+      result[entry.key] = await _renderPinIcon(color);
+    }
+    return result;
+  }
+
+  Future<BitmapDescriptor> _renderPinIcon(Color color) async {
+    const w = 28.0;
+    const h = 40.0;
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(
+      recorder,
+      const ui.Rect.fromLTWH(0, 0, w, h),
+    );
+
+    final fill = ui.Paint()..color = color;
+    final tail = ui.Path()
+      ..moveTo(w / 2 - 7, w - 6)
+      ..lineTo(w / 2 + 7, w - 6)
+      ..lineTo(w / 2, h)
+      ..close();
+
+    canvas
+      ..drawCircle(const ui.Offset(w / 2, w / 2), w / 2, fill)
+      ..drawPath(tail, fill)
+      ..drawCircle(
+        const ui.Offset(w / 2, w / 2),
+        w / 5,
+        ui.Paint()..color = const ui.Color(0xCCFFFFFF),
+      );
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(w.toInt(), h.toInt());
+    final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.bytes(bytes!.buffer.asUint8List());
   }
 
   void _fitBounds() {
@@ -99,15 +151,14 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
     );
   }
 
-  Set<Marker> _buildMarkers(Map<String, double> hues) {
+  Set<Marker> _buildMarkers() {
     return _visible
         .map(
           (t) => Marker(
             markerId: MarkerId(t.id),
             position: LatLng(t.latitude!, t.longitude!),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-              hues[t.categoryName] ?? BitmapDescriptor.hueRed,
-            ),
+            icon: _markerIcons[t.categoryName] ??
+                BitmapDescriptor.defaultMarker,
             infoWindow: InfoWindow(
               title: t.location ?? t.categoryName,
               snippet: '£${t.amount.toStringAsFixed(2)}'
@@ -122,7 +173,7 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hues = _categoryHues;
-    final markers = _buildMarkers(hues);
+    final markers = _buildMarkers();
     final totalSpend = _visible.fold<double>(0, (s, t) => s + t.amount);
 
     return Scaffold(
@@ -152,8 +203,7 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
                         _fitBounds();
                       },
                     ),
-                    // Category filter chips — left-aligned so they don't
-                    // overlap the legend in the top-right.
+                    // Category filter chips — right-side reserved for legend.
                     if (_categories.isNotEmpty)
                       Positioned(
                         top: 8,
@@ -191,7 +241,7 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
                           ),
                         ),
                       ),
-                    // Category colour legend — top-right.
+                    // Colour legend — top-right.
                     if (hues.isNotEmpty)
                       Positioned(
                         top: 8,
@@ -240,7 +290,6 @@ class _Legend extends StatelessWidget {
 
   final Map<String, double> categoryHues;
 
-  // Convert a Google Maps HSV hue (0-360, full saturation/value) to a Color.
   Color _hueToColor(double hue) =>
       HSVColor.fromAHSV(1, hue, 0.85, 0.85).toColor();
 
