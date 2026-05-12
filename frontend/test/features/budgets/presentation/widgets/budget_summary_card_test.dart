@@ -7,18 +7,18 @@ void main() {
   Widget buildCard({
     double totalBudget = 1000,
     double totalSpent = 600,
-    String month = 'March',
-    int year = 2026,
-    VoidCallback? onAddBudget,
+    String monthName = 'March',
+    int month = 3,
+    int year = 2025,
   }) =>
       MaterialApp(
         home: Scaffold(
           body: BudgetSummaryCard(
             totalBudget: totalBudget,
             totalSpent: totalSpent,
-            month: month,
+            monthName: monthName,
             year: year,
-            onAddBudget: onAddBudget,
+            month: month,
           ),
         ),
       );
@@ -31,7 +31,7 @@ void main() {
 
     testWidgets('renders month and year', (tester) async {
       await tester.pumpWidget(buildCard());
-      expect(find.text('March 2026'), findsOneWidget);
+      expect(find.text('March 2025'), findsOneWidget);
     });
 
     testWidgets('renders spent amount', (tester) async {
