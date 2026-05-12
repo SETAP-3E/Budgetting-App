@@ -11,6 +11,7 @@ import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/budget_health_card.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/metric_card.dart';
+import 'package:budgetting_frontend/features/dashboard/presentation/widgets/monthly_trend_chart.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/recent_transactions_card.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/spending_chart.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/top_category_alert.dart';
@@ -48,6 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, int> _colourByCategory = {};
   List<AccountModel> _accounts = [];
   BudgetSummaryModel? _budgetSummary;
+  BudgetSummaryModel? _lastMonthSummary;
 
   // Derived by _applyPeriod()
   List<Map<String, dynamic>> _currentPeriodData = [];
@@ -120,16 +122,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) setState(() => _isAccountsLoading = false);
     }
 
-    // ── Budget summary for current month ─────────────────────────────────
+    // ── Budget summaries for this month + last month ──────────────────────
     try {
       final now = DateTime.now();
-      final summary = await _budgetsClient.getBudgets(
-        year: now.year,
-        month: now.month,
-      );
+      final lastMonth = now.month == 1 ? 12 : now.month - 1;
+      final lastYear = now.month == 1 ? now.year - 1 : now.year;
+      final results = await Future.wait([
+        _budgetsClient.getBudgets(year: now.year, month: now.month),
+        _budgetsClient.getBudgets(year: lastYear, month: lastMonth),
+      ]);
       if (mounted) {
         setState(() {
-          _budgetSummary = summary;
+          _budgetSummary = results[0];
+          _lastMonthSummary = results[1];
           _isBudgetsLoading = false;
         });
       }
@@ -319,6 +324,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 budgetGoal: _selectedPeriod == 'this_year'
                     ? (_budgetSummary?.totalGoal ?? 0.0) * 12
                     : (_budgetSummary?.totalGoal ?? 0.0),
+                previousSpending: _selectedPeriod != 'this_year'
+                    ? _previousByCategory.values
+                        .fold<double>(0, (a, b) => a + b)
+                    : null,
                 useGradient: true,
               ),
               const SizedBox(height: 12),
@@ -347,22 +356,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 16),
               ],
 
-              // [6] Weekly spending — this_month only
-              if (_selectedPeriod == 'this_month' &&
-                  !_isBudgetsLoading &&
-                  (_budgetSummary?.weeklyBreakdown?.isNotEmpty ?? false)) ...[
-                WeeklyBudgetChart(
-                  weeks: _budgetSummary!.weeklyBreakdown!,
-                  totalGoal: _budgetSummary!.totalGoal,
-                  year: now.year,
-                  month: now.month,
+              // [6] Monthly chart for this_year; weekly for month views
+              if (_selectedPeriod == 'this_year' &&
+                  _allTransactions.isNotEmpty) ...[
+                MonthlyTrendChart(
+                  transactions: _allTransactions,
+                  monthCount: now.month,
                 ),
                 const SizedBox(height: 16),
               ],
 
-              // [7] Top category alert
-              if (_currentPeriodData.isNotEmpty) ...[
+              if (_selectedPeriod != 'this_year' && !_isBudgetsLoading) ...[
+                Builder(builder: (context) {
+                  final isLastMonth = _selectedPeriod == 'last_month';
+                  final summary =
+                      isLastMonth ? _lastMonthSummary : _budgetSummary;
+                  final weeks = summary?.weeklyBreakdown;
+                  if (weeks == null || weeks.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  final chartYear =
+                      isLastMonth ? _periodYear : now.year;
+                  final chartMonth = isLastMonth
+                      ? (now.month == 1 ? 12 : now.month - 1)
+                      : now.month;
+                  return Column(
+                    children: [
+                      WeeklyBudgetChart(
+                        weeks: weeks,
+                        totalGoal: summary!.totalGoal,
+                        year: chartYear,
+                        month: chartMonth,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  );
+                },),
+              ],
+
+
+              // [8] Top category alert + biggest saving (month views only)
+              if (_selectedPeriod != 'this_year' &&
+                  _currentPeriodData.isNotEmpty) ...[
                 _buildTopCategoryAlert(),
+                const SizedBox(height: 16),
+              ],
+              if (_selectedPeriod != 'this_year') ...[
+                _buildBiggestDecrease(),
                 const SizedBox(height: 16),
               ],
 
@@ -435,6 +475,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
       previousAmount: previousAmount,
       percentage: top['percentage'] as double,
       categoryColour: top['colour'] as int,
+    );
+  }
+
+  Widget _buildBiggestDecrease() {
+    // For "last_month" there's no prior-prior month data, so compare against
+    // this month's spending instead.
+    final Map<String, double> reference;
+    if (_selectedPeriod == 'last_month') {
+      final now = DateTime.now();
+      final totals = <String, double>{};
+      for (final t in _allTransactions) {
+        if (t.date.year == now.year && t.date.month == now.month) {
+          totals[t.categoryName] = (totals[t.categoryName] ?? 0) + t.amount;
+        }
+      }
+      reference = totals;
+    } else {
+      reference = _previousByCategory;
+    }
+
+    if (reference.isEmpty) return const SizedBox.shrink();
+
+    String? bestName;
+    double bestPct = 0;
+    double bestCurrent = 0;
+    double bestPrev = 0;
+    var bestColour = 0xFF9E9E9E;
+
+    for (final entry in reference.entries) {
+      final prev = entry.value;
+      if (prev <= 0) continue;
+      final matches = _currentPeriodData.where((d) => d['name'] == entry.key);
+      final current =
+          matches.isEmpty ? 0.0 : (matches.first['amount'] as double);
+      final pct = (current - prev) / prev * 100;
+      if (pct < bestPct) {
+        bestPct = pct;
+        bestName = entry.key;
+        bestCurrent = current;
+        bestPrev = prev;
+        bestColour = matches.isEmpty
+            ? (_colourByCategory[entry.key] ?? 0xFF9E9E9E)
+            : (matches.first['colour'] as int);
+      }
+    }
+
+    if (bestName == null) return const SizedBox.shrink();
+
+    final currentPct = _totalSpent > 0 ? bestCurrent / _totalSpent * 100 : 0.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Biggest Saving',
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
+              ?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        TopCategoryAlert(
+          categoryName: bestName,
+          currentAmount: bestCurrent,
+          previousAmount: bestPrev,
+          percentage: currentPct,
+          categoryColour: bestColour,
+        ),
+      ],
     );
   }
 

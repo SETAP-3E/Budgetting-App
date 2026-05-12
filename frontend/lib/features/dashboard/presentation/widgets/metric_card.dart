@@ -11,6 +11,7 @@ class MetricCard extends StatelessWidget {
     required this.month,
     required this.year,
     required this.budgetGoal,
+    this.previousSpending,
     this.useGradient = false,
     super.key,
   });
@@ -26,6 +27,10 @@ class MetricCard extends StatelessWidget {
 
   /// Sum of all monthly budget goals. Pass 0.0 when no budgets are set.
   final double budgetGoal;
+
+  /// Previous period's total spending — used to compute % change badge.
+  /// Pass null to hide the badge.
+  final double? previousSpending;
 
   /// When true, renders a mint-to-dark-teal gradient background with
   /// white text.
@@ -55,6 +60,18 @@ class MetricCard extends StatelessWidget {
       color: useGradient ? Colors.white70 : null,
     );
 
+    final prev = previousSpending;
+    final changePct =
+        (prev != null && prev > 0) ? (totalSpending - prev) / prev * 100 : null;
+    final isIncrease = changePct != null && changePct >= 0;
+    final changeColour = useGradient
+        ? Colors.white70
+        : (isIncrease ? Colors.redAccent : Colors.green);
+    final changeText = changePct != null
+        ? '${isIncrease ? '↑' : '↓'} '
+            '${changePct.abs().toStringAsFixed(0)}% from last month'
+        : null;
+
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Container(
@@ -79,6 +96,16 @@ class MetricCard extends StatelessWidget {
                 color: useGradient ? Colors.white : null,
               ),
             ),
+            if (changeText != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                changeText,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: changeColour,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
             if (hasBudget) ...[
               const SizedBox(height: 2),
               Text(
