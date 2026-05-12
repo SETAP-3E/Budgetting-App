@@ -46,8 +46,29 @@ Future<Response> _updateTransaction(RequestContext context, String id) async {
     );
   }
 
+  final datePattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+  if (!datePattern.hasMatch(transactionDate)) {
+    return Response.json(
+      statusCode: 400,
+      body: {'error': 'transaction_date must be in yyyy-MM-dd format'},
+    );
+  }
+
   final latitude = (body['latitude'] as num?)?.toDouble();
   final longitude = (body['longitude'] as num?)?.toDouble();
+
+  if (latitude != null && (latitude < -90 || latitude > 90)) {
+    return Response.json(
+      statusCode: 400,
+      body: {'error': 'latitude must be between -90 and 90'},
+    );
+  }
+  if (longitude != null && (longitude < -180 || longitude > 180)) {
+    return Response.json(
+      statusCode: 400,
+      body: {'error': 'longitude must be between -180 and 180'},
+    );
+  }
 
   if ((latitude == null) != (longitude == null)) {
     return Response.json(
@@ -87,7 +108,7 @@ Future<Response> _updateTransaction(RequestContext context, String id) async {
     categoryId: categoryId,
     amount: amount,
     transactionDate: transactionDate,
-    description: body['description'] as String?,
+    placeName: body['place_name'] as String?,
     latitude: latitude,
     longitude: longitude,
   );

@@ -12,7 +12,7 @@ class TransactionModel {
     required this.amount,
     required this.transactionDate,
     this.accountName,
-    this.description,
+    this.placeName,
     this.latitude,
     this.longitude,
   });
@@ -30,7 +30,7 @@ class TransactionModel {
       categoryName: map['category_name'] as String,
       accountName: map['account_name'] as String?,
       amount: double.parse(map['amount'].toString()),
-      description: map['description'] as String?,
+      placeName: map['place_name'] as String?,
       transactionDate: (map['transaction_date'] as DateTime)
           .toIso8601String()
           .substring(0, 10),
@@ -64,8 +64,8 @@ class TransactionModel {
   /// Amount spent in GBP.
   final double amount;
 
-  /// Optional description or location note.
-  final String? description;
+  /// Google Places display name recorded at transaction time.
+  final String? placeName;
 
   /// Date of the expense in ISO-8601 format (yyyy-MM-dd).
   final String transactionDate;
@@ -85,7 +85,7 @@ class TransactionModel {
         'category_name': categoryName,
         'account_name': accountName,
         'amount': amount,
-        'description': description,
+        'place_name': placeName,
         'transaction_date': transactionDate,
         'latitude': latitude,
         'longitude': longitude,

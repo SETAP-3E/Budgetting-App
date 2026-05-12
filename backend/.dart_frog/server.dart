@@ -12,6 +12,7 @@ import '../routes/transactions/[id].dart' as transactions_$id;
 import '../routes/places/details.dart' as places_details;
 import '../routes/places/autocomplete.dart' as places_autocomplete;
 import '../routes/categories/index.dart' as categories_index;
+import '../routes/categories/[id].dart' as categories_$id;
 import '../routes/budgets/index.dart' as budgets_index;
 import '../routes/auth/signup.dart' as auth_signup;
 import '../routes/auth/login.dart' as auth_login;
@@ -67,7 +68,7 @@ Handler buildPlacesHandler() {
 Handler buildCategoriesHandler() {
   final pipeline = const Pipeline();
   final router = Router()
-    ..all('/', (context) => categories_index.onRequest(context,));
+    ..all('/<id>', (context,id,) => categories_$id.onRequest(context,id,))..all('/', (context) => categories_index.onRequest(context,));
   return pipeline.addHandler(router);
 }
 

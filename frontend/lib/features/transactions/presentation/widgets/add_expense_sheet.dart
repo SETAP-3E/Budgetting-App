@@ -124,7 +124,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
             : _selectedCategory!['id'] as String,
         newCategoryName:
             _isOtherSelected ? _customCategoryController.text.trim() : null,
-        description: _selectedPlaceName,
+        placeName: _selectedPlaceName,
         latitude: _selectedLat,
         longitude: _selectedLng,
       );

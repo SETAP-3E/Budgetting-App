@@ -9,21 +9,32 @@ class TransactionRepository {
   /// The active database connection.
   final Connection connection;
 
-  /// Returns all transactions for [userId], newest first, with category name.
-  Future<List<TransactionModel>> getTransactions(String userId) async {
+  /// Returns transactions for [userId], newest first, with category name.
+  ///
+  /// Pass [limit] and [offset] for pagination; omit [limit] for all rows.
+  Future<List<TransactionModel>> getTransactions(
+    String userId, {
+    int? limit,
+    int offset = 0,
+  }) async {
     final result = await connection.execute(
       Sql.named(
         'SELECT t.id, t.user_id, t.account_id, t.category_id, '
         '  c.name AS category_name, a.name AS account_name, '
-        '  t.amount, t.description, '
+        '  t.amount, t.place_name, '
         '  t.transaction_date, t.latitude, t.longitude '
         'FROM transactions t '
         'JOIN categories c ON c.id = t.category_id '
         'LEFT JOIN accounts a ON a.id = t.account_id '
         'WHERE t.user_id = @userId '
-        'ORDER BY t.transaction_date DESC, t.created_at DESC',
+        'ORDER BY t.transaction_date DESC, t.created_at DESC '
+        '${limit != null ? 'LIMIT @limit OFFSET @offset' : ''}',
       ),
-      parameters: {'userId': userId},
+      parameters: {
+        'userId': userId,
+        if (limit != null) 'limit': limit,
+        if (limit != null) 'offset': offset,
+      },
     );
     return result.map(TransactionModel.fromRow).toList();
   }
@@ -35,27 +46,27 @@ class TransactionRepository {
     required String categoryId,
     required double amount,
     required String transactionDate,
-    String? description,
+    String? placeName,
     double? latitude,
     double? longitude,
   }) async {
     final result = await connection.execute(
       Sql.named(
         'INSERT INTO transactions '
-        '  (user_id, account_id, category_id, amount, description, '
+        '  (user_id, account_id, category_id, amount, place_name, '
         '   transaction_date, latitude, longitude) '
         'VALUES '
-        '  (@userId, @accountId, @categoryId, @amount, @description, '
+        '  (@userId, @accountId, @categoryId, @amount, @placeName, '
         '   @transactionDate, @latitude, @longitude) '
         'RETURNING id, user_id, account_id, category_id, amount, '
-        '  description, transaction_date, latitude, longitude',
+        '  place_name, transaction_date, latitude, longitude',
       ),
       parameters: {
         'userId': userId,
         'accountId': accountId,
         'categoryId': categoryId,
         'amount': amount,
-        'description': description,
+        'placeName': placeName,
         'transactionDate': transactionDate,
         'latitude': latitude,
         'longitude': longitude,
@@ -67,7 +78,7 @@ class TransactionRepository {
     final withCategory = await connection.execute(
       Sql.named(
         'SELECT t.id, t.user_id, t.account_id, t.category_id, '
-        '  c.name AS category_name, t.amount, t.description, '
+        '  c.name AS category_name, t.amount, t.place_name, '
         '  t.transaction_date, t.latitude, t.longitude '
         'FROM transactions t '
         'JOIN categories c ON c.id = t.category_id '
@@ -79,25 +90,35 @@ class TransactionRepository {
     return TransactionModel.fromRow(withCategory.first);
   }
 
-  /// Returns all transactions for [userId] on a specific [accountId], newest
+  /// Returns transactions for [userId] on a specific [accountId], newest
   /// first, with category name joined.
+  ///
+  /// Pass [limit] and [offset] for pagination; omit [limit] for all rows.
   Future<List<TransactionModel>> getAccountTransactions(
     String userId,
-    String accountId,
-  ) async {
+    String accountId, {
+    int? limit,
+    int offset = 0,
+  }) async {
     final result = await connection.execute(
       Sql.named(
         'SELECT t.id, t.user_id, t.account_id, t.category_id, '
         '  c.name AS category_name, a.name AS account_name, '
-        '  t.amount, t.description, '
+        '  t.amount, t.place_name, '
         '  t.transaction_date, t.latitude, t.longitude '
         'FROM transactions t '
         'JOIN categories c ON c.id = t.category_id '
         'LEFT JOIN accounts a ON a.id = t.account_id '
         'WHERE t.user_id = @userId AND t.account_id = @accountId '
-        'ORDER BY t.transaction_date DESC, t.created_at DESC',
+        'ORDER BY t.transaction_date DESC, t.created_at DESC '
+        '${limit != null ? 'LIMIT @limit OFFSET @offset' : ''}',
       ),
-      parameters: {'userId': userId, 'accountId': accountId},
+      parameters: {
+        'userId': userId,
+        'accountId': accountId,
+        if (limit != null) 'limit': limit,
+        if (limit != null) 'offset': offset,
+      },
     );
     return result.map(TransactionModel.fromRow).toList();
   }
@@ -111,7 +132,7 @@ class TransactionRepository {
     required String categoryId,
     required double amount,
     required String transactionDate,
-    String? description,
+    String? placeName,
     double? latitude,
     double? longitude,
   }) async {
@@ -119,7 +140,7 @@ class TransactionRepository {
       Sql.named(
         'UPDATE transactions SET '
         '  account_id = @accountId, category_id = @categoryId, '
-        '  amount = @amount, description = @description, '
+        '  amount = @amount, place_name = @placeName, '
         '  transaction_date = @transactionDate, '
         '  latitude = @latitude, longitude = @longitude '
         'WHERE id = @id AND user_id = @userId '
@@ -131,7 +152,7 @@ class TransactionRepository {
         'accountId': accountId,
         'categoryId': categoryId,
         'amount': amount,
-        'description': description,
+        'placeName': placeName,
         'transactionDate': transactionDate,
         'latitude': latitude,
         'longitude': longitude,
@@ -144,7 +165,7 @@ class TransactionRepository {
       Sql.named(
         'SELECT t.id, t.user_id, t.account_id, t.category_id, '
         '  c.name AS category_name, a.name AS account_name, '
-        '  t.amount, t.description, '
+        '  t.amount, t.place_name, '
         '  t.transaction_date, t.latitude, t.longitude '
         'FROM transactions t '
         'JOIN categories c ON c.id = t.category_id '
