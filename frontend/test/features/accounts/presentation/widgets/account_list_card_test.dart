@@ -11,6 +11,7 @@ void main() {
     balance: 1500,
     monthlyBudget: 1000,
     monthlySpent: 600,
+    weeklySpent: 0,
     accentColor: Colors.blue,
   );
 
