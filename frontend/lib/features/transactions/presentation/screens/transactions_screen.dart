@@ -1,3 +1,5 @@
+import 'dart:js_interop';
+
 import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
@@ -12,6 +14,7 @@ import 'package:budgetting_frontend/features/transactions/presentation/widgets/t
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:web/web.dart' as web;
 
 /// Screen displaying the paginated, searchable, sortable transaction list.
 class TransactionsScreen extends StatelessWidget {
@@ -95,12 +98,85 @@ class _TransactionsView extends StatelessWidget {
     );
   }
 
+  Future<void> _exportTransactions(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context)
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Preparing export…'),
+          duration: Duration(seconds: 30),
+        ),
+      );
+    try {
+      final txns = await TransactionsApiClient().getTransactions();
+      final csv = _buildCsv(txns);
+      final filename =
+          'transactions_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.csv';
+      _downloadCsv(csv, filename);
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Export downloaded')));
+    } catch (_) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Export failed — please try again'),
+          ),
+        );
+    }
+  }
+
+  String _buildCsv(List<TransactionModel> txns) {
+    final lines = [
+      'Date,Account,Category,Amount,Location,Latitude,Longitude',
+      ...txns.map(
+        (t) => [
+          _esc(DateFormat('yyyy-MM-dd').format(t.date)),
+          _esc(t.accountName ?? ''),
+          _esc(t.categoryName),
+          t.amount.toStringAsFixed(2),
+          _esc(t.location ?? ''),
+          t.latitude?.toStringAsFixed(6) ?? '',
+          t.longitude?.toStringAsFixed(6) ?? '',
+        ].join(','),
+      ),
+    ];
+    return '${lines.join('\n')}\n';
+  }
+
+  String _esc(String s) {
+    if (s.contains(',') || s.contains('"') || s.contains('\n')) {
+      return '"${s.replaceAll('"', '""')}"';
+    }
+    return s;
+  }
+
+  void _downloadCsv(String csv, String filename) {
+    final blob = web.Blob(
+      [csv.toJS].toJS,
+      web.BlobPropertyBag(type: 'text/csv;charset=utf-8'),
+    );
+    final url = web.URL.createObjectURL(blob);
+    (web.document.createElement('a') as web.HTMLAnchorElement)
+      ..href = url
+      ..download = filename
+      ..click();
+    web.URL.revokeObjectURL(url);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppHeader(
         title: 'Transactions',
         onMenuPressed: () {},
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined),
+            tooltip: 'Export CSV',
+            onPressed: () => _exportTransactions(context),
+          ),
+        ],
       ),
       body: Column(
         children: [
