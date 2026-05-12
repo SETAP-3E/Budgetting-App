@@ -13,6 +13,8 @@ class SetBudgetSheet extends StatefulWidget {
   const SetBudgetSheet({
     required this.year,
     required this.month,
+    this.initialCategoryId,
+    this.initialAmount,
     super.key,
   });
 
@@ -21,6 +23,12 @@ class SetBudgetSheet extends StatefulWidget {
 
   /// The month (1–12) the budget goal applies to.
   final int month;
+
+  /// When set, the sheet opens in edit mode with this category pre-selected.
+  final String? initialCategoryId;
+
+  /// When set, the amount field is pre-filled with this value.
+  final double? initialAmount;
 
   @override
   State<SetBudgetSheet> createState() => _SetBudgetSheetState();
@@ -36,6 +44,8 @@ class _SetBudgetSheetState extends State<SetBudgetSheet> {
   bool _loading = true;
   bool _saving = false;
   String? _error;
+
+  bool get _isEditMode => widget.initialCategoryId != null;
 
   @override
   void initState() {
@@ -55,6 +65,16 @@ class _SetBudgetSheetState extends State<SetBudgetSheet> {
       if (mounted) {
         setState(() {
           _categories = cats;
+          if (widget.initialCategoryId != null) {
+            _selected = cats.cast<CategoryItem?>().firstWhere(
+              (c) => c!.id == widget.initialCategoryId,
+              orElse: () => null,
+            );
+          }
+          if (widget.initialAmount != null) {
+            _amountController.text =
+                widget.initialAmount!.toStringAsFixed(2);
+          }
           _loading = false;
         });
       }
@@ -123,7 +143,7 @@ class _SetBudgetSheetState extends State<SetBudgetSheet> {
             ),
           ),
           Text(
-            'Set Budget Goal',
+            _isEditMode ? 'Edit Budget Goal' : 'Set Budget Goal',
             style: theme.textTheme.titleMedium
                 ?.copyWith(fontWeight: FontWeight.w700),
           ),
@@ -182,7 +202,9 @@ class _SetBudgetSheetState extends State<SetBudgetSheet> {
                           ),
                         )
                         .toList(),
-                    onChanged: (v) => setState(() => _selected = v),
+                    onChanged: _isEditMode
+                        ? null
+                        : (v) => setState(() => _selected = v),
                     validator: (v) =>
                         v == null ? 'Please select a category.' : null,
                   ),

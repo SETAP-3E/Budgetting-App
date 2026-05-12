@@ -34,96 +34,92 @@ class BudgetAlertCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isOverBudget = percentage > 100;
     final accentColour = budgetHealthColour(percentage);
-    final cardColour = theme.cardTheme.color ?? theme.colorScheme.surface;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColour,
-        borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: BorderSide(color: accentColour, width: 4),
-          top: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-          ),
-          right: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-          ),
-          bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-          ),
+    return Card(
+      margin: EdgeInsets.zero,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 4, color: accentColour),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            categoryName,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: accentColour,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            isOverBudget ? 'Over Budget' : 'Close to Limit',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _AmountColumn(
+                          label: 'Budget',
+                          value: formatCurrency(allocatedAmount),
+                        ),
+                        _AmountColumn(
+                          label: 'Spent',
+                          value: formatCurrency(currentAmount),
+                          valueColour: accentColour,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: LinearProgressIndicator(
+                        value: (percentage / 100).clamp(0.0, 1.0),
+                        minHeight: 6,
+                        backgroundColor: accentColour.withValues(alpha: 0.15),
+                        valueColor: AlwaysStoppedAnimation<Color>(accentColour),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${percentage.toInt()}% of budget used',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: accentColour,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-      ),
-      padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  categoryName,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: accentColour,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  isOverBudget ? 'Over Budget' : 'Close to Limit',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _AmountColumn(
-                label: 'Budget',
-                value: formatCurrency(allocatedAmount),
-              ),
-              _AmountColumn(
-                label: 'Spent',
-                value: formatCurrency(currentAmount),
-                valueColour: accentColour,
-                crossAxisAlignment: CrossAxisAlignment.end,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: (percentage / 100).clamp(0.0, 1.0),
-              minHeight: 6,
-              backgroundColor:
-                  accentColour.withValues(alpha: 0.15),
-              valueColor: AlwaysStoppedAnimation<Color>(accentColour),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${percentage.toInt()}% of budget used',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: accentColour,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }

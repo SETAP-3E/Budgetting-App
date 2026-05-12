@@ -55,6 +55,32 @@ class _BudgetsViewState extends State<_BudgetsView> {
     }
   }
 
+  Future<void> _openEditBudgetSheet(
+    BuildContext context,
+    int year,
+    int month,
+    BudgetItemModel budget,
+  ) async {
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SetBudgetSheet(
+        year: year,
+        month: month,
+        initialCategoryId: budget.categoryId,
+        initialAmount: budget.goalAmount,
+      ),
+    );
+    if ((saved ?? false) && context.mounted) {
+      context
+          .read<BudgetsBloc>()
+          .add(BudgetsLoadRequested(year: year, month: month));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<BudgetsBloc, BudgetsState>(
@@ -129,6 +155,12 @@ class _BudgetsViewState extends State<_BudgetsView> {
                 _CategorySection(
                   summary: state.summary!,
                   viewMode: state.viewMode,
+                  onEdit: (BudgetItemModel b) => _openEditBudgetSheet(
+                    context,
+                    state.selectedYear,
+                    state.selectedMonth,
+                    b,
+                  ),
                 ),
             ] else if (state.status == BudgetsStatus.loaded) ...[
               const _EmptyState(),
@@ -238,9 +270,7 @@ class _WeeklySection extends StatelessWidget {
   Widget build(BuildContext context) {
     final weeks = summary.weeklyBreakdown;
     final hasSpending = weeks?.any((w) => w.spent > 0) ?? false;
-    if (weeks == null ||
-        weeks.isEmpty ||
-        (!hasSpending && summary.totalGoal <= 0)) {
+    if (weeks == null || weeks.isEmpty || !hasSpending) {
       return const SizedBox.shrink();
     }
     return WeeklyBudgetChart(
@@ -269,12 +299,25 @@ class _AlertSection extends StatelessWidget {
     // Only show if close to or over limit (>= 75 %)
     if (alert.percentage < 75) return const SizedBox.shrink();
 
-    return BudgetAlertCard(
-      categoryName: alert.name,
-      allocatedAmount: alert.goalAmount,
-      currentAmount: alert.spentAmount,
-      percentage: alert.percentage,
-      categoryColour: alert.colourValue,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Budget Alert',
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
+              ?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        BudgetAlertCard(
+          categoryName: alert.name,
+          allocatedAmount: alert.goalAmount,
+          currentAmount: alert.spentAmount,
+          percentage: alert.percentage,
+          categoryColour: alert.colourValue,
+        ),
+      ],
     );
   }
 }
@@ -285,9 +328,11 @@ class _CategorySection extends StatelessWidget {
   const _CategorySection({
     required this.summary,
     required this.viewMode,
+    this.onEdit,
   });
   final BudgetSummaryModel summary;
   final BudgetViewMode viewMode;
+  final void Function(BudgetItemModel)? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -354,6 +399,7 @@ class _CategorySection extends StatelessWidget {
               spentAmount: b.spentAmount,
               percentage: b.percentage,
               categoryColour: b.colourValue,
+              onEditLimit: onEdit != null ? () => onEdit!(b) : null,
             ),
           ),
         ],

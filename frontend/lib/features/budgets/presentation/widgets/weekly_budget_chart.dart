@@ -62,7 +62,7 @@ class _WeeklyBudgetChartState extends State<WeeklyBudgetChart> {
   @override
   Widget build(BuildContext context) {
     final hasSpending = widget.weeks.any((w) => w.spent > 0);
-    if (widget.weeks.isEmpty || (!hasSpending && widget.totalGoal <= 0)) {
+    if (widget.weeks.isEmpty || !hasSpending) {
       return const SizedBox.shrink();
     }
     final showTarget = widget.totalGoal > 0;
