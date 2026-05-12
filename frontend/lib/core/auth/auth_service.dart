@@ -32,5 +32,8 @@ class AuthService {
 
   Future<String?> getToken() => _storage.read(key: _keyToken);
 
+  /// Returns the stored username, or null if no session exists.
+  Future<String?> getUsername() => _storage.read(key: _keyUsername);
+
   Future<bool> isLoggedIn() async => (await getToken()) != null;
 }

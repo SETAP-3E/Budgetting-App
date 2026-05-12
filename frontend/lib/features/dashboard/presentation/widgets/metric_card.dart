@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/theme/app_theme.dart';
 import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_summary_card.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ class MetricCard extends StatelessWidget {
     required this.month,
     required this.year,
     required this.budgetGoal,
+    this.useGradient = false,
     super.key,
   });
 
@@ -25,15 +27,23 @@ class MetricCard extends StatelessWidget {
   /// Sum of all monthly budget goals. Pass 0.0 when no budgets are set.
   final double budgetGoal;
 
+  /// When true, renders a mint-to-dark-teal gradient background with
+  /// white text.
+
+  final bool useGradient;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final periodLabel = month.isEmpty ? '$year' : '$month $year';
     final hasBudget = budgetGoal > 0;
     final pct = hasBudget ? (totalSpending / budgetGoal * 100) : 0.0;
-    final progressColour = hasBudget
+    final healthColour = hasBudget
         ? budgetHealthColour(pct)
         : theme.colorScheme.primary;
+    final progressColour = useGradient
+        ? (pct >= 100 ? Colors.redAccent : AppTheme.noteGreen)
+        : healthColour;
     final clampedValue =
         hasBudget ? (totalSpending / budgetGoal).clamp(0.0, 1.0) : 0.0;
     final remaining = budgetGoal - totalSpending;
@@ -41,23 +51,39 @@ class MetricCard extends StatelessWidget {
         ? '${formatCurrency(remaining)} remaining'
         : '${formatCurrency(remaining.abs())} over budget';
 
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+      color: useGradient ? Colors.white70 : null,
+    );
+
     return Card(
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: useGradient
+            ? const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppTheme.primaryMint, AppTheme.darkTeal],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              )
+            : null,
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(periodLabel, style: theme.textTheme.labelSmall),
+            Text(periodLabel, style: labelStyle),
             const SizedBox(height: 4),
             Text(
               formatCurrency(totalSpending),
-              style: theme.textTheme.displayLarge,
+              style: theme.textTheme.displayLarge?.copyWith(
+                color: useGradient ? Colors.white : null,
+              ),
             ),
             if (hasBudget) ...[
               const SizedBox(height: 2),
               Text(
                 'of ${formatCurrency(budgetGoal)} monthly budget',
-                style: theme.textTheme.labelSmall,
+                style: labelStyle,
               ),
               const SizedBox(height: 12),
               ClipRRect(
@@ -65,7 +91,9 @@ class MetricCard extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: clampedValue,
                   minHeight: 10,
-                  backgroundColor: progressColour.withValues(alpha: 0.15),
+                  backgroundColor: useGradient
+                      ? Colors.white24
+                      : progressColour.withValues(alpha: 0.15),
                   valueColor: AlwaysStoppedAnimation<Color>(progressColour),
                 ),
               ),
@@ -76,12 +104,12 @@ class MetricCard extends StatelessWidget {
                   Text(
                     remainingLabel,
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: progressColour,
+                      color: useGradient ? Colors.white : progressColour,
                     ),
                   ),
                   Text(
                     '${pct.toStringAsFixed(0)}% used',
-                    style: theme.textTheme.labelSmall,
+                    style: labelStyle,
                   ),
                 ],
               ),
@@ -89,9 +117,7 @@ class MetricCard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 'No monthly budget set',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontStyle: FontStyle.italic,
-                ),
+                style: labelStyle?.copyWith(fontStyle: FontStyle.italic),
               ),
             ],
           ],

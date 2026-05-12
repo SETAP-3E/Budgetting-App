@@ -1,15 +1,18 @@
+import 'package:budgetting_frontend/core/auth/auth_service.dart';
+import 'package:budgetting_frontend/core/theme/app_theme.dart';
+import 'package:budgetting_frontend/core/utils/colour_utils.dart';
 import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:budgetting_frontend/features/accounts/data/accounts_api_client.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
-import 'package:budgetting_frontend/features/accounts/presentation/widgets/accounts_overview_card.dart';
 import 'package:budgetting_frontend/features/budgets/data/budgets_api_client.dart';
 import 'package:budgetting_frontend/features/budgets/domain/models/budget_models.dart';
+import 'package:budgetting_frontend/features/budgets/presentation/widgets/weekly_budget_chart.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/budget_health_card.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/metric_card.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/recent_transactions_card.dart';
-import 'package:budgetting_frontend/features/dashboard/presentation/widgets/spending_bar_chart.dart';
+import 'package:budgetting_frontend/features/dashboard/presentation/widgets/spending_chart.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/top_category_alert.dart';
 import 'package:budgetting_frontend/features/transactions/data/datasources/transactions_api_client.dart';
 import 'package:budgetting_frontend/features/transactions/domain/models/transaction_model.dart';
@@ -32,6 +35,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _txnClient = TransactionsApiClient();
   final _accountsClient = AccountsApiClient();
   final _budgetsClient = BudgetsApiClient();
+  final _authService = AuthService();
 
   bool _isLoading = false;
   bool _isAccountsLoading = false;
@@ -39,6 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _error;
   bool _hasLoadedOnce = false;
 
+  String? _username;
   List<TransactionModel> _allTransactions = [];
   Map<String, int> _colourByCategory = {};
   List<AccountModel> _accounts = [];
@@ -50,11 +55,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double _totalSpent = 0;
   String _periodMonth = '';
   int _periodYear = 0;
+  int _periodTransactionCount = 0;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _loadUsername();
+  }
+
+  Future<void> _loadUsername() async {
+    final name = await _authService.getUsername();
+    if (mounted) setState(() => _username = name);
   }
 
   Future<void> _loadData() async {
@@ -187,21 +199,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ..sort((a, b) => b.value.compareTo(a.value));
 
     setState(() {
-      _currentPeriodData = sorted
-          .map(
-            (e) => <String, dynamic>{
-              'name': e.key,
-              'amount': e.value,
-              'percentage':
-                  totalCurrent > 0 ? e.value / totalCurrent * 100 : 0.0,
-              'colour': _colourByCategory[e.key] ?? 0xFF9E9E9E,
-            },
-          )
-          .toList();
+      _currentPeriodData = ensureUniqueColours(
+        sorted
+            .map(
+              (e) => <String, dynamic>{
+                'name': e.key,
+                'amount': e.value,
+                'percentage':
+                    totalCurrent > 0 ? e.value / totalCurrent * 100 : 0.0,
+                'colour': _colourByCategory[e.key] ?? 0xFF9E9E9E,
+              },
+            )
+            .toList(),
+      );
       _previousByCategory = prevTotals;
       _totalSpent = totalCurrent;
       _periodMonth = monthLabel;
       _periodYear = yearLabel;
+      _periodTransactionCount = curTxns.length;
     });
   }
 
@@ -277,6 +292,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
+    final now = DateTime.now();
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final daysLeft = daysInMonth - now.day;
+    final totalBalance =
+        _accounts.fold<double>(0, (s, a) => s + a.balance);
+
     return RefreshIndicator(
       onRefresh: _loadData,
       child: SingleChildScrollView(
@@ -286,7 +307,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // [1] Hero spending card
+              // [1] Greeting
+              _GreetingSection(username: _username, now: now),
+              const SizedBox(height: 12),
+
+              // [2] Hero spending card
               MetricCard(
                 totalSpending: _totalSpent,
                 month: _periodMonth,
@@ -294,40 +319,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 budgetGoal: _selectedPeriod == 'this_year'
                     ? (_budgetSummary?.totalGoal ?? 0.0) * 12
                     : (_budgetSummary?.totalGoal ?? 0.0),
+                useGradient: true,
               ),
               const SizedBox(height: 12),
 
-              // [2] Period selector
+              // [3] Quick stats row
+              _QuickStatsRow(
+                totalBalance: totalBalance,
+                transactionCount: _periodTransactionCount,
+                daysLeft: daysLeft,
+                isLoading: _isAccountsLoading,
+              ),
+              const SizedBox(height: 16),
+
+              // [4] Period selector
               _buildPeriodSelector(),
               const SizedBox(height: 16),
 
-              // [3] Account balance
-              _buildAccountsSection(),
-              const SizedBox(height: 16),
+              // [5] Donut chart or empty state
+              if (_currentPeriodData.isEmpty)
+                _buildEmptyState(context)
+              else ...[
+                SpendingChart(
+                  categories: _currentPeriodData,
+                  isSimpleView: true,
+                ),
+                const SizedBox(height: 16),
+              ],
 
-              // [4] Top category alert (conditional)
+              // [6] Weekly spending — this_month only
+              if (_selectedPeriod == 'this_month' &&
+                  !_isBudgetsLoading &&
+                  (_budgetSummary?.weeklyBreakdown?.isNotEmpty ?? false)) ...[
+                WeeklyBudgetChart(
+                  weeks: _budgetSummary!.weeklyBreakdown!,
+                  totalGoal: _budgetSummary!.totalGoal,
+                  year: now.year,
+                  month: now.month,
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // [7] Top category alert
               if (_currentPeriodData.isNotEmpty) ...[
                 _buildTopCategoryAlert(),
                 const SizedBox(height: 16),
               ],
-
-              // [5] Spending chart + [6] category list
-              if (_currentPeriodData.isEmpty)
-                _buildEmptyState(context)
-              else ...[
-                SpendingBarChart(categories: _currentPeriodData),
-                const SizedBox(height: 16),
-              ],
-
-              // [7] Recent transactions
-              _buildRecentTransactions(),
-              const SizedBox(height: 16),
 
               // [8] Budget health
               BudgetHealthCard(
                 summary: _isBudgetsLoading ? null : _budgetSummary,
                 onManage: () => context.go('/budgets'),
               ),
+              const SizedBox(height: 16),
+
+              // [9] Recent transactions
+              _buildRecentTransactions(),
               const SizedBox(height: 8),
             ],
           ),
@@ -377,38 +424,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildAccountsSection() {
-    if (_isAccountsLoading) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const LinearProgressIndicator(),
-              const SizedBox(height: 12),
-              Text(
-                'Loading accounts…',
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final totalBalance =
-        _accounts.fold<double>(0, (s, a) => s + a.balance);
-    final lowCount = _accounts.where((a) => a.balance < 1000).length;
-
-    return AccountsOverviewCard(
-      totalBalance: totalBalance,
-      activeAccounts: _accounts.length,
-      lowBalanceCount: lowCount,
-      currencyText: _accounts.isEmpty ? '—' : formatCurrency(totalBalance),
-    );
-  }
-
   Widget _buildTopCategoryAlert() {
     final top = _currentPeriodData.first;
     final previousAmount =
@@ -453,6 +468,159 @@ class _DashboardScreenState extends State<DashboardScreen> {
               'Add an expense to get started.',
               style: Theme.of(context).textTheme.bodySmall,
               textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Private widgets ────────────────────────────────────────────────────────
+
+class _GreetingSection extends StatelessWidget {
+  const _GreetingSection({required this.username, required this.now});
+
+  final String? username;
+  final DateTime now;
+
+  static const _days = [
+    '', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday',
+    'Saturday', 'Sunday',
+  ];
+
+  static const _months = [
+    '', 'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dayName = _days[now.weekday];
+    final monthName = _months[now.month];
+    final greeting =
+        username != null ? 'Hello, $username!' : 'Hello!';
+    final subtitle = '$dayName, ${now.day} $monthName';
+
+    final cs = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            greeting,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: cs.onPrimaryContainer,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: cs.onPrimaryContainer.withValues(alpha: 0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickStatsRow extends StatelessWidget {
+  const _QuickStatsRow({
+    required this.totalBalance,
+    required this.transactionCount,
+    required this.daysLeft,
+    required this.isLoading,
+  });
+
+  final double totalBalance;
+  final int transactionCount;
+  final int daysLeft;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final balanceValue =
+        isLoading ? '—' : formatCurrency(totalBalance);
+
+    return Row(
+      children: [
+        Expanded(
+          child: _StatTile(
+            icon: Icons.account_balance_wallet_outlined,
+            label: 'Total Balance',
+            value: balanceValue,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _StatTile(
+            icon: Icons.receipt_long_outlined,
+            label: 'Transactions',
+            value: '$transactionCount',
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _StatTile(
+            icon: Icons.calendar_today_outlined,
+            label: 'Days Left',
+            value: '$daysLeft',
+            iconColor: AppTheme.noteGreen,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.iconColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color =
+        iconColor ?? theme.colorScheme.primary;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: theme.textTheme.titleLarge,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppTheme.mediumText,
+              ),
             ),
           ],
         ),

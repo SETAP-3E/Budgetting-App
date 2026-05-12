@@ -98,10 +98,10 @@ class _SpendingChartState extends State<SpendingChart> {
           color: colour,
           value: amount,
           radius: isHovered ? 90 : 80,
-          // Show segment label if >5% of total
+          // Always show only %, empty string suppresses fl_chart's default
           title: widget.showPercentages && percentage >= 5
               ? '${percentage.toStringAsFixed(1)}%'
-              : null,
+              : '',
           titleStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -141,50 +141,65 @@ class _SpendingChartState extends State<SpendingChart> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final displayCategories = _getDisplayCategories();
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Card title
+            Text(
+              'Spending by Category',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+
             // fl_chart PieChart donut visualization
             SizedBox(
               height: 280,
-              child: PieChart(
-                PieChartData(
-                  centerSpaceRadius: 60,
-                  // White centre (donut style)
-                  pieTouchData: PieTouchData(
-                    touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                      setState(() {
-                        if (event.localPosition == null) {
-                          _hoveredSegmentIndex = null;
-                        } else {
-                          _hoveredSegmentIndex = pieTouchResponse
-                              ?.touchedSection?.touchedSectionIndex;
-                        }
-                      });
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PieChart(
+                    PieChartData(
+                      centerSpaceRadius: 60,
+                      pieTouchData: PieTouchData(
+                        touchCallback: (FlTouchEvent event, response) {
+                          setState(() {
+                            final idx = response
+                                ?.touchedSection?.touchedSectionIndex;
+                            _hoveredSegmentIndex =
+                                (idx != null && idx >= 0) ? idx : null;
+                          });
 
-                      // Handle tap to trigger onCategoryTap callback
-                      if (_isTapEvent(event) &&
-                          pieTouchResponse?.touchedSection != null) {
-                        // ignore: lines_longer_than_80_chars
-                        final index = pieTouchResponse!
-                            .touchedSection!.touchedSectionIndex;
-                        final displayCategories = _getDisplayCategories();
-                        final catName = _getCategoryNameAt(
-                          displayCategories,
-                          index,
-                        );
-                        if (catName != null) {
-                          widget.onCategoryTap?.call(catName);
-                        }
-                      }
-                    },
+                          if (_isTapEvent(event) &&
+                              response?.touchedSection != null) {
+                            final index =
+                                response!.touchedSection!.touchedSectionIndex;
+                            final catName = _getCategoryNameAt(
+                              displayCategories,
+                              index,
+                            );
+                            if (catName != null) {
+                              widget.onCategoryTap?.call(catName);
+                            }
+                          }
+                        },
+                      ),
+                      sections: _buildPieChartSections(displayCategories),
+                    ),
                   ),
-                  sections: _buildPieChartSections(displayCategories),
-                ),
+
+                  // Center tooltip shown on hover
+                  if (_hoveredSegmentIndex != null &&
+                      _hoveredSegmentIndex! < displayCategories.length)
+                    _CenterTooltip(
+                      category: displayCategories[_hoveredSegmentIndex!],
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -233,5 +248,38 @@ class _SpendingChartState extends State<SpendingChart> {
           ),
         )
         .toList();
+  }
+}
+
+class _CenterTooltip extends StatelessWidget {
+  const _CenterTooltip({required this.category});
+
+  final Map<String, dynamic> category;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final name = category['name'] as String;
+    final pct = (category['percentage'] as double).toStringAsFixed(1);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$pct%',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Color(category['colour'] as int),
+          ),
+        ),
+        Text(
+          name,
+          style: theme.textTheme.labelSmall,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
   }
 }

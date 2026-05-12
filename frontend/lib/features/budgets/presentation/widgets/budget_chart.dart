@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_summary_card.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -29,10 +27,8 @@ class BudgetChart extends StatefulWidget {
 
 class _BudgetChartState extends State<BudgetChart> {
   int? _touchedIndex;
-  final _pieKey = GlobalKey();
 
   static const double _innerRadius = 55;
-  static const double _outerRadius = 143;
 
   List<PieChartSectionData> _buildSections(double totalAllocated) {
     return List.generate(widget.categories.length, (index) {
@@ -54,44 +50,6 @@ class _BudgetChartState extends State<BudgetChart> {
         ),
       );
     });
-  }
-
-  void _handleTap(TapUpDetails details) {
-    final box = _pieKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return;
-
-    final local = box.globalToLocal(details.globalPosition);
-    final center = Offset(box.size.width / 2, box.size.height / 2);
-    final dx = local.dx - center.dx;
-    final dy = local.dy - center.dy;
-    final distance = sqrt(dx * dx + dy * dy);
-
-    if (distance < _innerRadius || distance > _outerRadius) {
-      setState(() => _touchedIndex = null);
-      return;
-    }
-
-    final total = widget.categories.fold<double>(
-      0,
-      (s, c) => s + (c['allocated'] as double),
-    );
-    if (total <= 0) return;
-
-    var angle = atan2(dy, dx) + pi / 2;
-    if (angle < 0) angle += 2 * pi;
-
-    double cumulative = 0;
-    for (var i = 0; i < widget.categories.length; i++) {
-      final slice =
-          (widget.categories[i]['allocated'] as double) / total * 2 * pi;
-      if (angle < cumulative + slice) {
-        setState(() => _touchedIndex = _touchedIndex == i ? null : i);
-        return;
-      }
-      cumulative += slice;
-    }
-
-    setState(() => _touchedIndex = null);
   }
 
   Widget _buildCenterTooltip() {
@@ -147,25 +105,28 @@ class _BudgetChartState extends State<BudgetChart> {
                     ),
               ),
               const SizedBox(height: 16),
-              GestureDetector(
-                onTapUp: _handleTap,
-                child: SizedBox(
-                  key: _pieKey,
-                  height: 300,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      PieChart(
-                        PieChartData(
-                          centerSpaceRadius: _innerRadius,
-                          pieTouchData: PieTouchData(enabled: false),
-                          sections: _buildSections(totalAllocated),
+              SizedBox(
+                height: 300,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    PieChart(
+                      PieChartData(
+                        centerSpaceRadius: _innerRadius,
+                        pieTouchData: PieTouchData(
+                          touchCallback: (event, response) {
+                            final idx = response
+                                ?.touchedSection?.touchedSectionIndex;
+                            setState(() => _touchedIndex =
+                                (idx != null && idx >= 0) ? idx : null,);
+                          },
                         ),
+                        sections: _buildSections(totalAllocated),
                       ),
-                      if (_touchedIndex != null)
-                        IgnorePointer(child: _buildCenterTooltip()),
-                    ],
-                  ),
+                    ),
+                    if (_touchedIndex != null)
+                      IgnorePointer(child: _buildCenterTooltip()),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),

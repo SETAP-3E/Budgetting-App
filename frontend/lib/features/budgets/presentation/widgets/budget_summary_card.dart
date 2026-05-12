@@ -40,92 +40,71 @@ class BudgetSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final remaining = totalBudget - totalSpent;
-    final pct =
-        totalBudget > 0 ? (totalSpent / totalBudget * 100).clamp(0.0, 100.0) : 0.0;
-    final barColour = budgetHealthColour(
-      totalBudget > 0 ? totalSpent / totalBudget * 100 : 0,
-    );
+    final rawPct =
+        totalBudget > 0 ? totalSpent / totalBudget * 100 : 0.0;
+    final pct = rawPct.clamp(0.0, 100.0);
+    final rawHealth = budgetHealthColour(rawPct);
+    final barColour =
+        rawHealth == AppTheme.primaryMint ? AppTheme.noteGreen : rawHealth;
 
     final now = DateTime.now();
     final daysInMonth = DateTime(year, month + 1, 0).day;
     final isCurrentMonth = now.year == year && now.month == month;
     final daysElapsed = isCurrentMonth ? now.day : daysInMonth;
     final daysLeft = isCurrentMonth ? daysInMonth - now.day : 0;
-
-    final expectedSpend =
-        totalBudget * (daysElapsed / daysInMonth);
+    final expectedSpend = totalBudget * (daysElapsed / daysInMonth);
     final paceRatio =
         expectedSpend > 0 ? totalSpent / expectedSpend : 0.0;
     final projectedSpend =
         daysElapsed > 0 ? (totalSpent / daysElapsed) * daysInMonth : 0.0;
 
     final (paceLabel, paceColour) = _pace(totalSpent, totalBudget, paceRatio);
+    final labelStyle =
+        theme.textTheme.labelSmall?.copyWith(color: Colors.white70);
+    final overBudget = remaining < 0;
+    final spentLabel = '${formatCurrency(totalSpent)} spent  ·  '
+        '${formatCurrency(remaining.abs())} '
+        '${overBudget ? 'over budget' : 'remaining'}';
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── Mint header ──────────────────────────────────────────────
-          Container(
-            color: AppTheme.primaryMint,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$monthName $year',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  formatCurrency(totalBudget),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _StatPill(
-                      label: 'Spent',
-                      value: formatCurrency(totalSpent),
-                      valueColour: Colors.white,
-                    ),
-                    const SizedBox(width: 16),
-                    _StatPill(
-                      label: 'Remaining',
-                      value: formatCurrency(remaining),
-                      valueColour: remaining < 0
-                          ? const Color(0xFFFFCDD2)
-                          : const Color(0xFFB2DFDB),
-                    ),
-                  ],
-                ),
-              ],
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppTheme.primaryMint, AppTheme.darkTeal],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('$monthName $year', style: labelStyle),
+            const SizedBox(height: 4),
+            Text(
+              formatCurrency(totalBudget),
+              style: theme.textTheme.displayLarge?.copyWith(
+                color: Colors.white,
+              ),
             ),
-          ),
-
-          // ── Progress bar ─────────────────────────────────────────────
-          LinearProgressIndicator(
-            value: pct / 100,
-            minHeight: 6,
-            backgroundColor: AppTheme.lightMint,
-            valueColor: AlwaysStoppedAnimation<Color>(barColour),
-          ),
-
-          // ── Details row ───────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-            child: Row(
+            const SizedBox(height: 2),
+            Text(spentLabel, style: labelStyle),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: pct / 100,
+                minHeight: 10,
+                backgroundColor: Colors.white24,
+                valueColor: AlwaysStoppedAnimation<Color>(barColour),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Text(
@@ -133,15 +112,17 @@ class BudgetSummaryCard extends StatelessWidget {
                         ? '$daysLeft days left · '
                             'Projected ${formatCurrency(projectedSpend)}'
                         : '${pct.toInt()}% of budget used',
-                    style: Theme.of(context).textTheme.labelSmall,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Colors.white,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 _PaceChip(label: paceLabel, colour: paceColour),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -155,40 +136,9 @@ class BudgetSummaryCard extends StatelessWidget {
       return ('Over budget', const Color(0xFFB71C1C));
     }
     if (ratio > 1.1) return ('Over pace', const Color(0xFFFFB300));
-    if (ratio >= 0.9) return ('On track', AppTheme.primaryMint);
+    if (ratio >= 0.9) return ('On track', AppTheme.noteGreen);
     return ('Ahead', AppTheme.noteGreen);
   }
-}
-
-class _StatPill extends StatelessWidget {
-  const _StatPill({
-    required this.label,
-    required this.value,
-    required this.valueColour,
-  });
-  final String label;
-  final String value;
-  final Color valueColour;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white60, fontSize: 11),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-              color: valueColour,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      );
 }
 
 class _PaceChip extends StatelessWidget {

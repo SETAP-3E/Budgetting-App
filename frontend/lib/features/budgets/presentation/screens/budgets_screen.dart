@@ -1,3 +1,4 @@
+import 'package:budgetting_frontend/core/utils/colour_utils.dart';
 import 'package:budgetting_frontend/features/budgets/domain/models/budget_models.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:budgetting_frontend/features/budgets/presentation/widgets/budget_alert_card.dart';
@@ -94,7 +95,7 @@ class _BudgetsViewState extends State<_BudgetsView> {
               state.selectedMonth,
             ),
             icon: const Icon(Icons.add),
-            label: const Text('Set Budget'),
+            label: const Text('Add Budget'),
           ),
           body: _buildBody(context, state),
           bottomNavigationBar: const AppFooter(activeIndex: 2),
@@ -141,20 +142,19 @@ class _BudgetsViewState extends State<_BudgetsView> {
             if (state.summary != null) ...[
               _SummarySection(summary: state.summary!),
               const SizedBox(height: 16),
+              _AlertSection(summary: state.summary!),
+              const SizedBox(height: 16),
               _WeeklySection(
                 summary: state.summary!,
                 year: state.selectedYear,
                 month: state.selectedMonth,
               ),
               const SizedBox(height: 16),
-              _AlertSection(summary: state.summary!),
-              const SizedBox(height: 16),
               if (state.summary!.budgets.isEmpty)
                 const _EmptyState()
               else
                 _CategorySection(
                   summary: state.summary!,
-                  viewMode: state.viewMode,
                   onEdit: (BudgetItemModel b) => _openEditBudgetSheet(
                     context,
                     state.selectedYear,
@@ -327,27 +327,27 @@ class _AlertSection extends StatelessWidget {
 class _CategorySection extends StatelessWidget {
   const _CategorySection({
     required this.summary,
-    required this.viewMode,
     this.onEdit,
   });
   final BudgetSummaryModel summary;
-  final BudgetViewMode viewMode;
   final void Function(BudgetItemModel)? onEdit;
 
   @override
   Widget build(BuildContext context) {
     if (summary.budgets.isEmpty) return const SizedBox.shrink();
 
-    final chartCategories = summary.budgets
-        .map(
-          (b) => <String, dynamic>{
-            'name': b.name,
-            'allocated': b.goalAmount,
-            'spent': b.spentAmount,
-            'colour': b.colourValue,
-          },
-        )
-        .toList();
+    final chartCategories = ensureUniqueColours(
+      summary.budgets
+          .map(
+            (b) => <String, dynamic>{
+              'name': b.name,
+              'allocated': b.goalAmount,
+              'spent': b.spentAmount,
+              'colour': b.colourValue,
+            },
+          )
+          .toList(),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -363,46 +363,25 @@ class _CategorySection extends StatelessWidget {
                     ?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
-            SegmentedButton<BudgetViewMode>(
-              segments: const [
-                ButtonSegment(
-                  value: BudgetViewMode.overview,
-                  label: Text('Overview'),
-                ),
-                ButtonSegment(
-                  value: BudgetViewMode.details,
-                  label: Text('Details'),
-                ),
-              ],
-              selected: {viewMode},
-              onSelectionChanged: (s) => context
-                  .read<BudgetsBloc>()
-                  .add(BudgetsViewModeChanged(s.first)),
-              style: const ButtonStyle(
-                visualDensity: VisualDensity.compact,
-              ),
-            ),
           ],
         ),
         const SizedBox(height: 12),
         BudgetChart(
           categories: chartCategories,
-          isSimpleView: viewMode == BudgetViewMode.overview,
+          isSimpleView: true,
         ),
-        if (viewMode == BudgetViewMode.details) ...[
-          const SizedBox(height: 12),
-          ...summary.budgets.map(
-            (b) => BudgetCard(
-              rank: b.rank,
-              categoryName: b.name,
-              allocatedAmount: b.goalAmount,
-              spentAmount: b.spentAmount,
-              percentage: b.percentage,
-              categoryColour: b.colourValue,
-              onEditLimit: onEdit != null ? () => onEdit!(b) : null,
-            ),
+        const SizedBox(height: 12),
+        ...summary.budgets.map(
+          (b) => BudgetCard(
+            rank: b.rank,
+            categoryName: b.name,
+            allocatedAmount: b.goalAmount,
+            spentAmount: b.spentAmount,
+            percentage: b.percentage,
+            categoryColour: b.colourValue,
+            onEditLimit: onEdit != null ? () => onEdit!(b) : null,
           ),
-        ],
+        ),
       ],
     );
   }
