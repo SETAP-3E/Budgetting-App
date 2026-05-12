@@ -26,13 +26,86 @@ class AccountDetailScreen extends StatefulWidget {
   State<AccountDetailScreen> createState() => _AccountDetailScreenState();
 }
 
+enum _TxSort { dateNewest, dateOldest, amountHighest, amountLowest }
+
 class _AccountDetailScreenState extends State<AccountDetailScreen> {
   List<AccountTransactionItem>? _transactions;
   bool _loading = true;
   String? _error;
   int _txPage = 0;
+  _TxSort _sort = _TxSort.dateNewest;
+  String? _categoryFilter;
 
   static const _kPageSize = 5;
+
+  List<AccountTransactionItem> _derive() {
+    var list = List<AccountTransactionItem>.from(_transactions ?? []);
+    if (_categoryFilter != null) {
+      list = list.where((t) => t.categoryName == _categoryFilter).toList();
+    }
+    switch (_sort) {
+      case _TxSort.dateNewest:
+        list.sort((a, b) => b.date.compareTo(a.date));
+      case _TxSort.dateOldest:
+        list.sort((a, b) => a.date.compareTo(b.date));
+      case _TxSort.amountHighest:
+        list.sort((a, b) => b.amount.compareTo(a.amount));
+      case _TxSort.amountLowest:
+        list.sort((a, b) => a.amount.compareTo(b.amount));
+    }
+    return list;
+  }
+
+  void _showSortSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) {
+        final theme = Theme.of(context);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Text('Sort by',
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w600)),
+                ),
+                ..._TxSort.values.map((s) {
+                  final label = switch (s) {
+                    _TxSort.dateNewest    => 'Date — newest first',
+                    _TxSort.dateOldest   => 'Date — oldest first',
+                    _TxSort.amountHighest => 'Amount — highest first',
+                    _TxSort.amountLowest  => 'Amount — lowest first',
+                  };
+                  final selected = _sort == s;
+                  return ListTile(
+                    dense: true,
+                    title: Text(label, style: theme.textTheme.bodyMedium),
+                    trailing: selected
+                        ? Icon(Icons.check,
+                            size: 18,
+                            color: theme.colorScheme.primary,)
+                        : null,
+                    onTap: () {
+                      setState(() { _sort = s; _txPage = 0; });
+                      Navigator.pop(context);
+                    },
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -72,12 +145,18 @@ class _AccountDetailScreenState extends State<AccountDetailScreen> {
             )
             .toList() ??
         [];
-    final allTxns = _transactions ?? [];
+    final allTxns = _derive();
     final totalPages = (allTxns.length / _kPageSize).ceil().clamp(1, 999);
     final pageTxns = allTxns
         .skip(_txPage * _kPageSize)
         .take(_kPageSize)
         .toList();
+
+    final categories = (_transactions ?? [])
+        .map((t) => t.categoryName)
+        .toSet()
+        .toList()
+      ..sort();
 
     return Scaffold(
       appBar: AppBar(
@@ -118,7 +197,55 @@ class _AccountDetailScreenState extends State<AccountDetailScreen> {
                           ),
                         ],
                         const SizedBox(height: 20),
-                        _sectionLabel(theme, 'Transactions'),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _sectionLabel(theme, 'Transactions'),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => _showSortSheet(context),
+                              icon: const Icon(Icons.sort, size: 16),
+                              label: const Text('Sort'),
+                              style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (categories.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                FilterChip(
+                                  label: const Text('All'),
+                                  selected: _categoryFilter == null,
+                                  onSelected: (_) => setState(() {
+                                    _categoryFilter = null;
+                                    _txPage = 0;
+                                  }),
+                                ),
+                                ...categories.map(
+                                  (cat) => Padding(
+                                    padding: const EdgeInsets.only(left: 6),
+                                    child: FilterChip(
+                                      label: Text(cat),
+                                      selected: _categoryFilter == cat,
+                                      onSelected: (_) => setState(() {
+                                        _categoryFilter =
+                                            _categoryFilter == cat
+                                                ? null
+                                                : cat;
+                                        _txPage = 0;
+                                      }),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 10),
                         _RecentTransactions(
                           transactions: pageTxns,
