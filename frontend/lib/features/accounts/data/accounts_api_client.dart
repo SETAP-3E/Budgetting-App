@@ -4,6 +4,34 @@ import 'package:budgetting_frontend/features/accounts/domain/models/account_mode
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
+/// A single transaction belonging to a specific account, used in the detail
+/// screen to show recent activity and category spending.
+class AccountTransactionItem {
+  /// Create an [AccountTransactionItem].
+  const AccountTransactionItem({
+    required this.id,
+    required this.categoryName,
+    required this.amount,
+    required this.date,
+    this.description,
+  });
+
+  /// Unique transaction identifier.
+  final String id;
+
+  /// Name of the spending category.
+  final String categoryName;
+
+  /// Transaction amount in GBP.
+  final double amount;
+
+  /// Date the transaction occurred.
+  final DateTime date;
+
+  /// Optional free-text description.
+  final String? description;
+}
+
 /// HTTP client for the accounts API endpoints.
 class AccountsApiClient {
   /// Create an [AccountsApiClient].
@@ -43,6 +71,28 @@ class AccountsApiClient {
       },
     );
     return _fromJson(response.data!);
+  }
+
+  /// Fetches all transactions for [accountId], newest first.
+  Future<List<AccountTransactionItem>> getAccountTransactions(
+    String accountId,
+  ) async {
+    final response = await _dio.get<List<dynamic>>(
+      '/transactions',
+      queryParameters: {'account_id': accountId},
+    );
+    return (response.data ?? [])
+        .cast<Map<String, dynamic>>()
+        .map(
+          (j) => AccountTransactionItem(
+            id: j['id'] as String,
+            categoryName: j['category_name'] as String,
+            amount: (j['amount'] as num).toDouble(),
+            date: DateTime.parse(j['transaction_date'] as String),
+            description: j['description'] as String?,
+          ),
+        )
+        .toList();
   }
 
   AccountModel _fromJson(Map<String, dynamic> json) => AccountModel(
