@@ -26,7 +26,12 @@ Future<Response> _getTransactions(RequestContext context) async {
   final userId = context.read<String>();
   final connection = await context.read<Future<Connection>>();
   final repo = TransactionRepository(connection);
-  final transactions = await repo.getTransactions(userId);
+
+  final accountId =
+      context.request.uri.queryParameters['account_id'];
+  final transactions = (accountId != null && accountId.isNotEmpty)
+      ? await repo.getAccountTransactions(userId, accountId)
+      : await repo.getTransactions(userId);
 
   return Response.json(
     body: transactions.map((t) => t.toJson()).toList(),

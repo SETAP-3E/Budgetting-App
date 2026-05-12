@@ -79,6 +79,29 @@ class TransactionRepository {
     return TransactionModel.fromRow(withCategory.first);
   }
 
+  /// Returns all transactions for [userId] on a specific [accountId], newest
+  /// first, with category name joined.
+  Future<List<TransactionModel>> getAccountTransactions(
+    String userId,
+    String accountId,
+  ) async {
+    final result = await connection.execute(
+      Sql.named(
+        'SELECT t.id, t.user_id, t.account_id, t.category_id, '
+        '  c.name AS category_name, a.name AS account_name, '
+        '  t.amount, t.description, '
+        '  t.transaction_date, t.latitude, t.longitude '
+        'FROM transactions t '
+        'JOIN categories c ON c.id = t.category_id '
+        'LEFT JOIN accounts a ON a.id = t.account_id '
+        'WHERE t.user_id = @userId AND t.account_id = @accountId '
+        'ORDER BY t.transaction_date DESC, t.created_at DESC',
+      ),
+      parameters: {'userId': userId, 'accountId': accountId},
+    );
+    return result.map(TransactionModel.fromRow).toList();
+  }
+
   /// Updates an existing transaction and returns the updated row, or null if
   /// no row matched [id] + [userId].
   Future<TransactionModel?> updateTransaction({
