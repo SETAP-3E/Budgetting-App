@@ -34,12 +34,21 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
       )
       .toList();
 
+  // Sorted list of unique categories that have at least one geolocated tx.
   List<String> get _categories => _transactions
       .where((t) => t.latitude != null && t.longitude != null)
       .map((t) => t.categoryName)
       .toSet()
       .toList()
     ..sort();
+
+  // Evenly-spaced hues across 360° — one per category, in sorted order.
+  Map<String, double> get _categoryHues {
+    final cats = _categories;
+    if (cats.isEmpty) return {};
+    final step = 360.0 / cats.length;
+    return {for (var i = 0; i < cats.length; i++) cats[i]: i * step};
+  }
 
   @override
   void initState() {
@@ -64,7 +73,9 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
   }
 
   void _fitBounds() {
-    final pts = _visible.map((t) => LatLng(t.latitude!, t.longitude!)).toList();
+    final pts = _visible
+        .map((t) => LatLng(t.latitude!, t.longitude!))
+        .toList();
     if (pts.isEmpty) return;
     if (pts.length == 1) {
       _mapController?.animateCamera(
@@ -88,23 +99,18 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
     );
   }
 
-  // Deterministic hue in [0, 360) derived from the category name.
-  double _categoryHue(String category) =>
-      (category.codeUnits.fold(0, (a, b) => a + b) % 360).toDouble();
-
-  Set<Marker> _buildMarkers() {
+  Set<Marker> _buildMarkers(Map<String, double> hues) {
     return _visible
         .map(
           (t) => Marker(
             markerId: MarkerId(t.id),
             position: LatLng(t.latitude!, t.longitude!),
             icon: BitmapDescriptor.defaultMarkerWithHue(
-              _categoryHue(t.categoryName),
+              hues[t.categoryName] ?? BitmapDescriptor.hueRed,
             ),
             infoWindow: InfoWindow(
               title: t.location ?? t.categoryName,
-              snippet:
-                  '£${t.amount.toStringAsFixed(2)}'
+              snippet: '£${t.amount.toStringAsFixed(2)}'
                   ' · ${DateFormat('d MMM y').format(t.date)}',
             ),
           ),
@@ -115,7 +121,8 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final markers = _buildMarkers();
+    final hues = _categoryHues;
+    final markers = _buildMarkers(hues);
     final totalSpend = _visible.fold<double>(0, (s, t) => s + t.amount);
 
     return Scaffold(
@@ -145,17 +152,18 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
                         _fitBounds();
                       },
                     ),
-                    // Category filter chips
+                    // Category filter chips — left-aligned so they don't
+                    // overlap the legend in the top-right.
                     if (_categories.isNotEmpty)
                       Positioned(
                         top: 8,
                         left: 8,
-                        right: 8,
+                        right: 120,
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              _FilterChip(
+                              _MapChip(
                                 label: 'All',
                                 selected: _selectedCategory == null,
                                 onTap: () => setState(() {
@@ -166,12 +174,14 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
                               ..._categories.map(
                                 (cat) => Padding(
                                   padding: const EdgeInsets.only(left: 6),
-                                  child: _FilterChip(
+                                  child: _MapChip(
                                     label: cat,
                                     selected: _selectedCategory == cat,
                                     onTap: () => setState(() {
                                       _selectedCategory =
-                                          _selectedCategory == cat ? null : cat;
+                                          _selectedCategory == cat
+                                              ? null
+                                              : cat;
                                       _fitBounds();
                                     }),
                                   ),
@@ -181,7 +191,14 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
                           ),
                         ),
                       ),
-                    // Stats card
+                    // Category colour legend — top-right.
+                    if (hues.isNotEmpty)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: _Legend(categoryHues: hues),
+                      ),
+                    // Stats card — bottom centre.
                     if (markers.isNotEmpty)
                       Positioned(
                         bottom: 16,
@@ -216,8 +233,58 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
+// ── Colour legend ────────────────────────────────────────────────────────────
+
+class _Legend extends StatelessWidget {
+  const _Legend({required this.categoryHues});
+
+  final Map<String, double> categoryHues;
+
+  // Convert a Google Maps HSV hue (0-360, full saturation/value) to a Color.
+  Color _hueToColor(double hue) =>
+      HSVColor.fromAHSV(1, hue, 0.85, 0.85).toColor();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: categoryHues.entries.map((e) {
+            final color = _hueToColor(e.value);
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(e.key, style: theme.textTheme.labelSmall),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Filter chip ──────────────────────────────────────────────────────────────
+
+class _MapChip extends StatelessWidget {
+  const _MapChip({
     required this.label,
     required this.selected,
     required this.onTap,
@@ -262,6 +329,8 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
+// ── Empty state ──────────────────────────────────────────────────────────────
+
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.theme});
 
@@ -281,10 +350,7 @@ class _EmptyState extends StatelessWidget {
               color: theme.colorScheme.outline,
             ),
             const SizedBox(height: 16),
-            Text(
-              'No locations saved yet',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text('No locations saved yet', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
               'Add a place when recording an expense to see it here',
