@@ -13,13 +13,7 @@ class AppFooter extends StatelessWidget {
 
   void _onTap(BuildContext context, int index) {
     if (index == activeIndex) return;
-    if (index < _routes.length) {
-      context.go(_routes[index]);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reports coming soon')),
-      );
-    }
+    context.go(_routes[index]);
   }
 
   @override
@@ -46,8 +40,8 @@ class AppFooter extends StatelessWidget {
           label: 'Transactions',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.bar_chart),
-          label: 'Reports',
+          icon: Icon(Icons.map_outlined),
+          label: 'Expense Map',
         ),
       ],
     );

@@ -61,7 +61,7 @@ class _SpendingMapScreenState extends State<SpendingMapScreen> {
     final markers = _buildMarkers();
 
     return Scaffold(
-      appBar: const AppHeader(title: 'Spending Map'),
+      appBar: const AppHeader(title: 'Expense Map'),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : markers.isEmpty
