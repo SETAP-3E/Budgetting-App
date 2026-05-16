@@ -37,6 +37,9 @@ class BudgetAlertCard extends StatelessWidget {
 
     return Card(
       margin: EdgeInsets.zero,
+      color: isOverBudget
+          ? theme.colorScheme.errorContainer
+          : theme.colorScheme.tertiaryContainer,
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,

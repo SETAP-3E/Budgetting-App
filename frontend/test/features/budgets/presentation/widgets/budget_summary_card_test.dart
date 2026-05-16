@@ -34,52 +34,40 @@ void main() {
       expect(find.text('March 2025'), findsOneWidget);
     });
 
-    testWidgets('renders spent amount', (tester) async {
+    testWidgets('renders spent and remaining in one label', (tester) async {
       await tester.pumpWidget(buildCard());
-      expect(find.text('£600.00'), findsOneWidget);
-    });
-
-    testWidgets('renders positive remaining amount in green', (tester) async {
-      await tester.pumpWidget(buildCard());
-
-      final remainingWidget =
-          tester.widget<Text>(find.text('£400.00'));
-      expect(remainingWidget.style?.color, Colors.green);
-    });
-
-    testWidgets('renders percentage text', (tester) async {
-      await tester.pumpWidget(buildCard());
-      expect(find.text('60% of total budget used'), findsOneWidget);
-    });
-
-    testWidgets('shows over-budget warning when spent exceeds budget',
-        (tester) async {
-      await tester.pumpWidget(
-        buildCard(totalBudget: 500),
-      );
       expect(
-        find.text('You have exceeded your budget!'),
+        find.text('£600.00 spent  ·  £400.00 remaining'),
         findsOneWidget,
       );
     });
 
-    testWidgets('does not show over-budget warning when within budget',
-        (tester) async {
+    testWidgets('renders "remaining" label when under budget', (tester) async {
       await tester.pumpWidget(buildCard());
-      expect(
-        find.text('You have exceeded your budget!'),
-        findsNothing,
-      );
+      expect(find.textContaining('remaining'), findsOneWidget);
     });
 
-    testWidgets('remaining is red when over budget', (tester) async {
-      await tester.pumpWidget(
-        buildCard(totalBudget: 500),
-      );
+    testWidgets('renders percentage text for a past month', (tester) async {
+      await tester.pumpWidget(buildCard());
+      expect(find.text('60% of budget used'), findsOneWidget);
+    });
 
-      final remainingWidget =
-          tester.widget<Text>(find.text(formatCurrency(-100)));
-      expect(remainingWidget.style?.color, Colors.red);
+    testWidgets('pace chip shows "Over budget" when spent exceeds budget',
+        (tester) async {
+      await tester.pumpWidget(buildCard(totalBudget: 500));
+      expect(find.text('Over budget'), findsOneWidget);
+    });
+
+    testWidgets('spent label shows "over budget" text when over limit',
+        (tester) async {
+      await tester.pumpWidget(buildCard(totalBudget: 500));
+      expect(find.textContaining('over budget'), findsOneWidget);
+    });
+
+    testWidgets('does not show over-budget label when within budget',
+        (tester) async {
+      await tester.pumpWidget(buildCard());
+      expect(find.textContaining('over budget'), findsNothing);
     });
 
     testWidgets('renders LinearProgressIndicator', (tester) async {

@@ -12,7 +12,7 @@ void main() {
       'category_id': 'cat-uuid-1',
       'category_name': 'Groceries',
       'amount': '49.99',
-      'description': 'Tesco Warwick',
+      'place_name': 'Tesco Warwick',
       'transaction_date': DateTime(2026, 3, 15),
       'latitude': '52.2800',
       'longitude': '-1.5850',
@@ -28,7 +28,7 @@ void main() {
         expect(model.categoryId, 'cat-uuid-1');
         expect(model.categoryName, 'Groceries');
         expect(model.amount, 49.99);
-        expect(model.description, 'Tesco Warwick');
+        expect(model.placeName, 'Tesco Warwick');
         expect(model.transactionDate, '2026-03-15');
         expect(model.latitude, 52.28);
         expect(model.longitude, -1.585);
@@ -54,11 +54,11 @@ void main() {
         expect(model.longitude, isNull);
       });
 
-      test('handles null description', () {
-        final row = {...baseRow, 'description': null};
+      test('handles null place_name', () {
+        final row = {...baseRow, 'place_name': null};
         final model = TransactionModel.fromRow(makeRow(row));
 
-        expect(model.description, isNull);
+        expect(model.placeName, isNull);
       });
     });
 
@@ -71,7 +71,7 @@ void main() {
         categoryName: 'Groceries',
         amount: 49.99,
         transactionDate: '2026-03-15',
-        description: 'Tesco Warwick',
+        placeName: 'Tesco Warwick',
         latitude: 52.28,
         longitude: -1.585,
       );
@@ -86,7 +86,7 @@ void main() {
         expect(json['category_name'], 'Groceries');
         expect(json['amount'], 49.99);
         expect(json['transaction_date'], '2026-03-15');
-        expect(json['description'], 'Tesco Warwick');
+        expect(json['place_name'], 'Tesco Warwick');
         expect(json['latitude'], 52.28);
         expect(json['longitude'], -1.585);
       });
@@ -104,7 +104,7 @@ void main() {
 
         final json = nullableModel.toJson();
 
-        expect(json['description'], isNull);
+        expect(json['place_name'], isNull);
         expect(json['latitude'], isNull);
         expect(json['longitude'], isNull);
       });

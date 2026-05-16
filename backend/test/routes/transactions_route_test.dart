@@ -12,11 +12,16 @@ class MockRequestContext extends Mock implements RequestContext {}
 
 class MockConnection extends Mock implements Connection {}
 
-RequestContext _makeGet(String path, MockConnection connection) {
+RequestContext _makeGet(
+  String path,
+  MockConnection connection, {
+  String userId = 'user-1',
+}) {
   final ctx = MockRequestContext();
   when(() => ctx.request).thenReturn(
     Request('GET', Uri.parse('http://test.com$path')),
   );
+  when(() => ctx.read<String>()).thenReturn(userId);
   when(() => ctx.read<Future<Connection>>())
       .thenAnswer((_) => Future.value(connection));
   return ctx;
@@ -24,8 +29,9 @@ RequestContext _makeGet(String path, MockConnection connection) {
 
 RequestContext _makePost(
   Map<String, dynamic> body,
-  MockConnection connection,
-) {
+  MockConnection connection, {
+  String userId = 'user-1',
+}) {
   final ctx = MockRequestContext();
   when(() => ctx.request).thenReturn(
     Request(
@@ -35,6 +41,7 @@ RequestContext _makePost(
       body: jsonEncode(body),
     ),
   );
+  when(() => ctx.read<String>()).thenReturn(userId);
   when(() => ctx.read<Future<Connection>>())
       .thenAnswer((_) => Future.value(connection));
   return ctx;
@@ -58,25 +65,7 @@ void main() {
   });
 
   group('GET /transactions', () {
-    test('returns 400 when user_id is absent', () async {
-      final ctx = _makeGet('/transactions', connection);
-
-      final response = await route.onRequest(ctx);
-      final body = await response.json() as Map<String, dynamic>;
-
-      expect(response.statusCode, 400);
-      expect(body['error'], contains('user_id'));
-    });
-
-    test('returns 400 when user_id is empty', () async {
-      final ctx = _makeGet('/transactions?user_id=', connection);
-
-      final response = await route.onRequest(ctx);
-
-      expect(response.statusCode, 400);
-    });
-
-    test('returns 200 with transaction list for valid user_id', () async {
+    test('returns 200 with transaction list for authenticated user', () async {
       when(
         () => connection.execute(
           any(),
@@ -91,7 +80,7 @@ void main() {
             'category_id': 'cat-1',
             'category_name': 'Food',
             'amount': '12.50',
-            'description': null,
+            'place_name': null,
             'transaction_date': DateTime(2026, 3, 10),
             'latitude': null,
             'longitude': null,
@@ -99,13 +88,30 @@ void main() {
         ]),
       );
 
-      final ctx = _makeGet('/transactions?user_id=user-1', connection);
+      final ctx = _makeGet('/transactions', connection);
 
       final response = await route.onRequest(ctx);
       final body = await response.json() as List<dynamic>;
 
       expect(response.statusCode, 200);
       expect(body, hasLength(1));
+    });
+
+    test('returns 200 with empty list when no transactions', () async {
+      when(
+        () => connection.execute(
+          any(),
+          parameters: any(named: 'parameters'),
+        ),
+      ).thenAnswer((_) async => makeResult([]));
+
+      final ctx = _makeGet('/transactions', connection);
+
+      final response = await route.onRequest(ctx);
+      final body = await response.json() as List<dynamic>;
+
+      expect(response.statusCode, 200);
+      expect(body, isEmpty);
     });
   });
 
@@ -123,7 +129,6 @@ void main() {
     test('returns 400 when amount is zero or negative', () async {
       final ctx = _makePost(
         {
-          'user_id': 'user-1',
           'account_id': 'acc-1',
           'amount': -5,
           'transaction_date': '2026-03-01',
@@ -142,7 +147,6 @@ void main() {
     test('returns 400 when latitude is given without longitude', () async {
       final ctx = _makePost(
         {
-          'user_id': 'user-1',
           'account_id': 'acc-1',
           'amount': 10,
           'transaction_date': '2026-03-01',
@@ -162,7 +166,6 @@ void main() {
     test('returns 400 when no category_id or new_category_name', () async {
       final ctx = _makePost(
         {
-          'user_id': 'user-1',
           'account_id': 'acc-1',
           'amount': 10,
           'transaction_date': '2026-03-01',
@@ -185,7 +188,7 @@ void main() {
         'category_id': 'cat-1',
         'category_name': 'Food',
         'amount': '10.00',
-        'description': null,
+        'place_name': null,
         'transaction_date': DateTime(2026, 3),
         'latitude': null,
         'longitude': null,
@@ -199,7 +202,6 @@ void main() {
 
       final ctx = _makePost(
         {
-          'user_id': 'user-1',
           'account_id': 'acc-1',
           'amount': 10,
           'transaction_date': '2026-03-01',

@@ -21,6 +21,7 @@ class LocationSearchField extends StatefulWidget {
     required this.onPlaceSelected,
     this.onCleared,
     this.initialValue,
+    this.apiClient,
     super.key,
   });
 
@@ -33,13 +34,16 @@ class LocationSearchField extends StatefulWidget {
   /// Pre-fills the field with an existing location name (e.g. when editing).
   final String? initialValue;
 
+  /// Overrides the default [TransactionsApiClient] — used in tests only.
+  final TransactionsApiClient? apiClient;
+
   @override
   State<LocationSearchField> createState() => _LocationSearchFieldState();
 }
 
 class _LocationSearchFieldState extends State<LocationSearchField> {
   final _controller = TextEditingController();
-  final _apiClient = TransactionsApiClient();
+  late final _apiClient = widget.apiClient ?? TransactionsApiClient();
   Timer? _debounce;
 
   List<Map<String, dynamic>> _suggestions = [];

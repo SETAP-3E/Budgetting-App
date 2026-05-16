@@ -1,5 +1,4 @@
-import 'dart:js_interop';
-
+import 'package:budgetting_frontend/core/utils/csv_downloader.dart';
 import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_footer.dart';
 import 'package:budgetting_frontend/features/dashboard/presentation/widgets/app_header.dart';
@@ -14,7 +13,6 @@ import 'package:budgetting_frontend/features/transactions/presentation/widgets/t
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:web/web.dart' as web;
 
 /// Screen displaying the paginated, searchable, sortable transaction list.
 class TransactionsScreen extends StatelessWidget {
@@ -151,18 +149,8 @@ class _TransactionsView extends StatelessWidget {
     return s;
   }
 
-  void _downloadCsv(String csv, String filename) {
-    final blob = web.Blob(
-      [csv.toJS].toJS,
-      web.BlobPropertyBag(type: 'text/csv;charset=utf-8'),
-    );
-    final url = web.URL.createObjectURL(blob);
-    (web.document.createElement('a') as web.HTMLAnchorElement)
-      ..href = url
-      ..download = filename
-      ..click();
-    web.URL.revokeObjectURL(url);
-  }
+  void _downloadCsv(String csv, String filename) =>
+      downloadCsv(csv, filename);
 
   @override
   Widget build(BuildContext context) {

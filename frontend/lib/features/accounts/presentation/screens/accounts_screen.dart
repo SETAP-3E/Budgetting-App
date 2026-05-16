@@ -1,5 +1,4 @@
-import 'dart:js_interop';
-
+import 'package:budgetting_frontend/core/utils/csv_downloader.dart';
 import 'package:budgetting_frontend/core/utils/currency_formatter.dart';
 import 'package:budgetting_frontend/features/accounts/data/accounts_api_client.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
@@ -17,17 +16,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:web/web.dart' as web;
 
 /// Accounts screen showing account balances and quick actions.
 class AccountsScreen extends StatelessWidget {
   /// Creates the accounts screen.
   ///
-  /// [apiClientOverride] is injected in tests to avoid real HTTP calls.
-  const AccountsScreen({super.key, this.apiClientOverride});
+  /// [apiClientOverride] and [txnsApiClientOverride] are injected in tests
+  /// to avoid real HTTP calls.
+  const AccountsScreen({
+    super.key,
+    this.apiClientOverride,
+    this.txnsApiClientOverride,
+  });
 
   /// Replaces the default [AccountsApiClient] — used in tests only.
   final AccountsApiClient? apiClientOverride;
+
+  /// Replaces the default [TransactionsApiClient] — used in tests only.
+  final TransactionsApiClient? txnsApiClientOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -35,13 +41,15 @@ class AccountsScreen extends StatelessWidget {
       create: (_) =>
           AccountsBloc(apiClient: apiClientOverride ?? AccountsApiClient())
             ..add(const AccountsStarted()),
-      child: const _AccountsView(),
+      child: _AccountsView(txnsApiClient: txnsApiClientOverride),
     );
   }
 }
 
 class _AccountsView extends StatelessWidget {
-  const _AccountsView();
+  const _AccountsView({this.txnsApiClient});
+
+  final TransactionsApiClient? txnsApiClient;
 
   void _openAddAccountSheet(BuildContext context) {
     showModalBottomSheet<void>(
@@ -71,7 +79,8 @@ class _AccountsView extends StatelessWidget {
         ),
       );
     try {
-      final txns = await TransactionsApiClient().getTransactions();
+      final client = txnsApiClient ?? TransactionsApiClient();
+      final txns = await client.getTransactions();
       final csv = _buildCsv(txns);
       final filename =
           'transactions_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.csv';
@@ -112,18 +121,8 @@ class _AccountsView extends StatelessWidget {
     return s;
   }
 
-  void _downloadCsv(String csv, String filename) {
-    final blob = web.Blob(
-      [csv.toJS].toJS,
-      web.BlobPropertyBag(type: 'text/csv;charset=utf-8'),
-    );
-    final url = web.URL.createObjectURL(blob);
-    (web.document.createElement('a') as web.HTMLAnchorElement)
-      ..href = url
-      ..download = filename
-      ..click();
-    web.URL.revokeObjectURL(url);
-  }
+  void _downloadCsv(String csv, String filename) =>
+      downloadCsv(csv, filename);
 
   @override
   Widget build(BuildContext context) {

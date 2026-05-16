@@ -2,14 +2,19 @@ import 'dart:async';
 
 import 'package:budgetting_frontend/features/accounts/data/accounts_api_client.dart';
 import 'package:budgetting_frontend/features/accounts/domain/models/account_model.dart';
-import 'package:budgetting_frontend/features/accounts/presentation/screens/account_detail_screen.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/screens/accounts_screen.dart';
 import 'package:budgetting_frontend/features/accounts/presentation/widgets/add_account_sheet.dart';
+import 'package:budgetting_frontend/features/transactions/data/datasources/transactions_api_client.dart';
+import 'package:budgetting_frontend/features/transactions/domain/models/transaction_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockAccountsApiClient extends Mock implements AccountsApiClient {}
+
+class MockTransactionsApiClient extends Mock
+    implements TransactionsApiClient {}
 
 final _accounts = [
   const AccountModel(
@@ -35,16 +40,34 @@ final _accounts = [
 ];
 
 late MockAccountsApiClient mockClient;
+late MockTransactionsApiClient mockTxnsClient;
 
-Widget buildWidget() => MaterialApp(
-      home: AccountsScreen(apiClientOverride: mockClient),
+GoRouter _router() => GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, __) => AccountsScreen(
+            apiClientOverride: mockClient,
+            txnsApiClientOverride: mockTxnsClient,
+          ),
+        ),
+        GoRoute(
+          path: '/accounts/:id',
+          builder: (_, __) => const Scaffold(body: Text('AccountDetail')),
+        ),
+      ],
     );
+
+Widget buildWidget() => MaterialApp.router(routerConfig: _router());
 
 void main() {
   setUp(() {
     mockClient = MockAccountsApiClient();
-    when(() => mockClient.getAccounts())
-        .thenAnswer((_) async => _accounts);
+    mockTxnsClient = MockTransactionsApiClient();
+    when(() => mockClient.getAccounts()).thenAnswer((_) async => _accounts);
+    when(() => mockTxnsClient.getTransactions())
+        .thenAnswer((_) async => <TransactionModel>[]);
   });
 
   group('AccountsScreen', () {
@@ -69,13 +92,13 @@ void main() {
       expect(find.text('Savings Pot'), findsOneWidget);
     });
 
-    testWidgets('tapping account card navigates to AccountDetailScreen',
+    testWidgets('tapping account card navigates to account detail',
         (tester) async {
       await tester.pumpWidget(buildWidget());
       await tester.pumpAndSettle();
       await tester.tap(find.text('Main Current Account'));
       await tester.pumpAndSettle();
-      expect(find.byType(AccountDetailScreen), findsOneWidget);
+      expect(find.text('AccountDetail'), findsOneWidget);
     });
 
     testWidgets('tapping Add Account opens AddAccountSheet', (tester) async {
@@ -86,20 +109,17 @@ void main() {
       expect(find.byType(AddAccountSheet), findsOneWidget);
     });
 
-    testWidgets('Transfer shows coming soon snackbar', (tester) async {
+    testWidgets('tapping Export shows preparing snackbar', (tester) async {
+      final completer = Completer<List<TransactionModel>>();
+      when(() => mockTxnsClient.getTransactions())
+          .thenAnswer((_) => completer.future);
       await tester.pumpWidget(buildWidget());
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Transfer'));
+      await tester.tap(find.byIcon(Icons.file_download_outlined));
       await tester.pump();
-      expect(find.text('Transfer flow coming soon'), findsOneWidget);
-    });
-
-    testWidgets('Export shows coming soon snackbar', (tester) async {
-      await tester.pumpWidget(buildWidget());
+      expect(find.text('Preparing export…'), findsOneWidget);
+      completer.complete(<TransactionModel>[]);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Export'));
-      await tester.pump();
-      expect(find.text('Export flow coming soon'), findsOneWidget);
     });
   });
 }

@@ -17,10 +17,17 @@ Color _usageColour(double ratio) {
 /// Full-screen view for a single account — live data fetched on open.
 class AccountDetailScreen extends StatefulWidget {
   /// Create an [AccountDetailScreen].
-  const AccountDetailScreen({required this.account, super.key});
+  const AccountDetailScreen({
+    required this.account,
+    this.apiClient,
+    super.key,
+  });
 
   /// The account to display.
   final AccountModel account;
+
+  /// Overrides the default [AccountsApiClient] — used in tests only.
+  final AccountsApiClient? apiClient;
 
   @override
   State<AccountDetailScreen> createState() => _AccountDetailScreenState();
@@ -75,7 +82,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                   child: Text('Sort by',
                       style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w600)),
+                          ?.copyWith(fontWeight: FontWeight.w600),),
                 ),
                 ..._TxSort.values.map((s) {
                   final label = switch (s) {
@@ -119,7 +126,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen> {
       _error = null;
     });
     try {
-      final txns = await AccountsApiClient()
+      final txns = await (widget.apiClient ?? AccountsApiClient())
           .getAccountTransactions(widget.account.id);
       if (mounted) setState(() { _transactions = txns; _loading = false; });
     } catch (_) {

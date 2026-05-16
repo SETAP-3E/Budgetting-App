@@ -10,11 +10,16 @@ class MockRequestContext extends Mock implements RequestContext {}
 
 class MockConnection extends Mock implements Connection {}
 
-RequestContext _makeCtx(String path, MockConnection connection) {
+RequestContext _makeCtx(
+  String path,
+  MockConnection connection, {
+  String userId = 'user-uuid-1',
+}) {
   final ctx = MockRequestContext();
   when(() => ctx.request).thenReturn(
     Request('GET', Uri.parse('http://test.com$path')),
   );
+  when(() => ctx.read<String>()).thenReturn(userId);
   when(() => ctx.read<Future<Connection>>())
       .thenAnswer((_) => Future.value(connection));
   return ctx;
@@ -46,25 +51,7 @@ void main() {
       }
     });
 
-    test('returns 400 when user_id is absent', () async {
-      final ctx = _makeCtx('/categories', connection);
-
-      final response = await route.onRequest(ctx);
-      final body = await response.json() as Map<String, dynamic>;
-
-      expect(response.statusCode, 400);
-      expect(body['error'], contains('user_id'));
-    });
-
-    test('returns 400 when user_id is empty string', () async {
-      final ctx = _makeCtx('/categories?user_id=', connection);
-
-      final response = await route.onRequest(ctx);
-
-      expect(response.statusCode, 400);
-    });
-
-    test('returns 200 with category list for valid user_id', () async {
+    test('returns 200 with category list for authenticated user', () async {
       when(
         () => connection.execute(
           any(),
@@ -82,7 +69,7 @@ void main() {
         ]),
       );
 
-      final ctx = _makeCtx('/categories?user_id=user-uuid-1', connection);
+      final ctx = _makeCtx('/categories', connection);
 
       final response = await route.onRequest(ctx);
       final body = await response.json() as List<dynamic>;
@@ -90,6 +77,23 @@ void main() {
       expect(response.statusCode, 200);
       expect(body, hasLength(1));
       expect((body[0] as Map<String, dynamic>)['name'], 'Food');
+    });
+
+    test('returns 200 with empty list when no categories', () async {
+      when(
+        () => connection.execute(
+          any(),
+          parameters: any(named: 'parameters'),
+        ),
+      ).thenAnswer((_) async => makeResult([]));
+
+      final ctx = _makeCtx('/categories', connection);
+
+      final response = await route.onRequest(ctx);
+      final body = await response.json() as List<dynamic>;
+
+      expect(response.statusCode, 200);
+      expect(body, isEmpty);
     });
   });
 }

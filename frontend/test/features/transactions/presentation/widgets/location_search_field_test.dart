@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:budgetting_frontend/features/transactions/data/datasources/transactions_api_client.dart';
 import 'package:budgetting_frontend/features/transactions/presentation/widgets/location_search_field.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +24,7 @@ void main() {
           body: LocationSearchField(
             onPlaceSelected: onPlaceSelected,
             onCleared: onCleared,
+            apiClient: mockApiClient,
           ),
         ),
       );
@@ -59,12 +62,15 @@ void main() {
     });
 
     testWidgets('shows loading indicator during search', (tester) async {
+      final completer = Completer<List<Map<String, dynamic>>>();
       when(() => mockApiClient.getPlaceSuggestions(any()))
-          .thenAnswer((_) async => []);
+          .thenAnswer((_) => completer.future);
       await tester.pumpWidget(buildField(onPlaceSelected: (_, __, ___) {}));
       await tester.enterText(find.byType(TextFormField), 'test');
-      await tester.pump(); // Trigger loading
+      await tester.pump(const Duration(milliseconds: 350));
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      completer.complete([]);
+      await tester.pumpAndSettle();
     });
 
     testWidgets('shows suggestions when search returns results', (tester) async {

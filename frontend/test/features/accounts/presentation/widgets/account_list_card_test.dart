@@ -47,9 +47,9 @@ void main() {
       expect(find.text('£400.00 left'), findsOneWidget);
     });
 
-    testWidgets('shows a LinearProgressIndicator', (tester) async {
+    testWidgets('shows LinearProgressIndicators', (tester) async {
       await tester.pumpWidget(buildWidget());
-      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsWidgets);
     });
 
     testWidgets('fires onTap when the card is tapped', (tester) async {

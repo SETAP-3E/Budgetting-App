@@ -28,15 +28,17 @@ void main() {
       expect(find.text('My App'), findsOneWidget);
     });
 
-    testWidgets('renders actions when provided', (tester) async {
+    testWidgets('renders extra actions when provided', (tester) async {
       final actions = [IconButton(onPressed: () {}, icon: const Icon(Icons.add))];
       await tester.pumpWidget(buildHeader(actions: actions));
       expect(find.byIcon(Icons.add), findsOneWidget);
     });
 
-    testWidgets('does not render actions when null', (tester) async {
+    testWidgets('renders only the logout button when no actions provided',
+        (tester) async {
       await tester.pumpWidget(buildHeader());
-      expect(find.byType(IconButton), findsNothing);
+      expect(find.byType(IconButton), findsOneWidget);
+      expect(find.byIcon(Icons.logout), findsOneWidget);
     });
 
     testWidgets('has correct preferredSize', (tester) async {

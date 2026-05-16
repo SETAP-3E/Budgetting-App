@@ -9,12 +9,19 @@ void main() {
     testWidgets('renders signup form fields and actions', (tester) async {
       await tester.pumpWidget(buildSignup());
 
-      expect(find.text('Create account'), findsNWidgets(2));
+      expect(find.text('Budget Buddy'), findsOneWidget);
+      expect(find.text('Create your account'), findsOneWidget);
       expect(find.text('Username'), findsOneWidget);
       expect(find.text('Password'), findsOneWidget);
       expect(find.text('Confirm password'), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Create account'), findsOneWidget);
-      expect(find.text('Already have an account? Log in'), findsOneWidget);
+      expect(
+        find.widgetWithText(FilledButton, 'Create account'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Already have an account? Log in'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('shows validation errors for empty form', (tester) async {
@@ -28,9 +35,12 @@ void main() {
     testWidgets('shows password validation messages when values are invalid',
         (tester) async {
       await tester.pumpWidget(buildSignup());
-      await tester.enterText(find.widgetWithText(TextFormField, 'Username'), 'ab');
-      await tester.enterText(find.widgetWithText(TextFormField, 'Password'), '1234567');
-      await tester.enterText(find.widgetWithText(TextFormField, 'Confirm password'), 'different');
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Username'), 'ab',);
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Password'), '1234567',);
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Confirm password'), 'different',);
       await tester.tap(find.widgetWithText(FilledButton, 'Create account'));
       await tester.pump();
 

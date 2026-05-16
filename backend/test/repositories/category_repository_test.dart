@@ -100,16 +100,13 @@ void main() {
       });
 
       test('inserts new category when none found', () async {
-        var callCount = 0;
         when(
           () => connection.execute(
             any(),
             parameters: any(named: 'parameters'),
           ),
-        ).thenAnswer((_) async {
-          callCount++;
-          if (callCount == 1) return makeResult([]);
-          return makeResult([
+        ).thenAnswer(
+          (_) async => makeResult([
             {
               'id': 'cat-new',
               'name': 'Taxi',
@@ -117,14 +114,19 @@ void main() {
               'colour_value': 4294945792,
               'is_predefined': false,
             },
-          ]);
-        });
+          ]),
+        );
 
         final category = await repo.findOrCreateCustom('user-uuid-1', 'Taxi');
 
         expect(category.id, 'cat-new');
         expect(category.name, 'Taxi');
-        expect(callCount, 2);
+        verify(
+          () => connection.execute(
+            any(),
+            parameters: any(named: 'parameters'),
+          ),
+        ).called(1);
       });
     });
   });

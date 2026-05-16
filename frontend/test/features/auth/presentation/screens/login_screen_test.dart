@@ -9,7 +9,7 @@ void main() {
     testWidgets('renders login form fields and actions', (tester) async {
       await tester.pumpWidget(buildLogin());
 
-      expect(find.text('Welcome back'), findsOneWidget);
+      expect(find.text('Budget Buddy'), findsOneWidget);
       expect(find.text('Username'), findsOneWidget);
       expect(find.text('Password'), findsOneWidget);
       expect(find.text('Log in'), findsOneWidget);

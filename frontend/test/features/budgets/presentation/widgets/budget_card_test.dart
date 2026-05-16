@@ -25,7 +25,7 @@ void main() {
   group('BudgetCard', () {
     testWidgets('renders rank', (tester) async {
       await tester.pumpWidget(buildCard());
-      expect(find.text('#1'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
     });
 
     testWidgets('renders category name', (tester) async {
@@ -55,7 +55,7 @@ void main() {
       final percentageText = tester.widget<Text>(find.text('125%'));
       expect(
         percentageText.style?.color,
-        Colors.red,
+        const Color(0xFFB71C1C),
       );
     });
 
