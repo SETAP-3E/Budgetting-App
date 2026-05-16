@@ -18,6 +18,7 @@ AccountModel _stubAccount({
       balance: 500,
       monthlyBudget: 300,
       monthlySpent: 0,
+      weeklySpent: 0,
       accentColor: kAccountAccentColours.first,
     );
 

@@ -19,6 +19,7 @@ final _accounts = [
     balance: 1842.76,
     monthlyBudget: 1800,
     monthlySpent: 0,
+    weeklySpent: 0,
     accentColor: Color(0xFF4DB6AC),
   ),
   const AccountModel(
@@ -28,6 +29,7 @@ final _accounts = [
     balance: 5200,
     monthlyBudget: 600,
     monthlySpent: 0,
+    weeklySpent: 0,
     accentColor: Color(0xFF66BB6A),
   ),
 ];

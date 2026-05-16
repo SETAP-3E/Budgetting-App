@@ -14,6 +14,7 @@ AccountModel _acc({
   double balance = 2000,
   double monthlyBudget = 1500,
   double monthlySpent = 800,
+  double weeklySpent = 0,
 }) =>
     AccountModel(
       id: id,
@@ -22,6 +23,7 @@ AccountModel _acc({
       balance: balance,
       monthlyBudget: monthlyBudget,
       monthlySpent: monthlySpent,
+      weeklySpent: weeklySpent,
       accentColor: const Color(0xFF4DB6AC),
     );
 
